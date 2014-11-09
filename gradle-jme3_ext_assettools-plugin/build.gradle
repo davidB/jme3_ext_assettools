@@ -1,0 +1,107 @@
+buildscript {
+	repositories {
+		jcenter()
+	}
+	dependencies {
+		classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:0.5'
+	}
+}
+apply plugin: 'eclipse'
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+
+group = "net.alchim31.gradle"
+version = "0.1.0"
+def description = 'A gradle plugin to extract/isolate asset to generate files ready to be bundled/jared and used by jmonkeyengine'
+
+repositories {
+	jcenter()
+	maven { url "http://updates.jmonkeyengine.org/maven/"}
+	maven { url "http://dl.bintray.com/davidb/jme3stuff" }
+	mavenLocal()
+}
+
+def v_jme = '3.0.10'
+
+dependencies {
+	compile gradleApi()
+	compile localGroovy()
+	//compile 'com.squareup.okhttp:okhttp:2.0.0' // compiled with jdk 1.7
+	compile "com.jme3:jme3-core:${v_jme}"
+	compile "com.jme3:jme3-blender:${v_jme}"
+	runtime "com.jme3:jme3-desktop:${v_jme}"
+	runtime "com.jme3:jme3-lwjgl:${v_jme}"
+	testRuntime "com.jme3:jme3-testdata:3.1.0-snapshot-github"
+}
+
+compileGroovy {
+	sourceCompatibility = '1.7'
+	targetCompatibility = '1.7'
+}
+
+task sourcesJar(type: Jar) {
+	from sourceSets.main.allSource
+	classifier = 'sources'
+}
+	//jar.dependsOn sourcesJar
+
+def pomConfig = {
+	licenses {
+		license {
+			name "Public domain (CC0-1.0)"
+			url "http://creativecommons.org/publicdomain/zero/1.0/"
+			distribution "repo"
+		}
+	}
+	developers {
+		developer {
+			id "davidB"
+			name "David Bernard"
+		}
+	}
+}
+
+publishing {
+	publications {
+		mavenStuff(MavenPublication) {
+			from components.java
+			artifact sourcesJar
+			pom.withXml {
+				def root = asNode()
+				root.appendNode('description', description)
+				root.children().last() + pomConfig
+			}
+		}
+	}
+}
+
+bintray {
+	user = bintray_user
+	key = bintray_api_key
+
+	publications = ['mavenStuff'] //When uploading Maven-based publication files
+	//dryRun = false //Whether to run this as dry-run, without deploying
+	publish = true //If version should be auto published after an upload
+	pkg {
+		repo = 'jme3stuff'
+		name = project.name
+		desc = description
+		websiteUrl = "https://github.com/davidB/${project.name}"
+		issueTrackerUrl = "https://github.com/davidB/${project.name}/issues"
+		vcsUrl = "https://github.com/davidB/${project.name}.git"
+		licenses = ['CC0-1.0']
+		labels = ['gradle', 'jme3', 'tools']
+		publicDownloadNumbers = true
+		version {
+			name = project.version
+			vcsTag = project.version
+			attributes = ['gradle-plugin': "net.alchim31.jme3_ext:${project.group}:${project.name}"] //Optional version-level attributes
+			//gpg {
+			//	sign = true //Determines whether to GPG sign the files. The default is false
+			//	passphrase = 'optional, the passphrase for GPG signing'
+			//}
+		}
+	}
+}
