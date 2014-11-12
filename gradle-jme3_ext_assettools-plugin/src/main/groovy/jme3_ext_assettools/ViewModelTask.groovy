@@ -17,7 +17,9 @@ class ViewModelTask extends DefaultTask {
 
 	def rpath
 	String getRpath() {
-		return rpath.toString()
+		if (rpath == null) return null
+		def v = (rpath instanceof Closure) ? rpath() : rpath
+		v.toString()
 	}
 	def file
 	File getFile() {
@@ -26,14 +28,16 @@ class ViewModelTask extends DefaultTask {
 
 	@TaskAction
 	def action() {
+		println(">> inRPath : ${rpath} / ${getRpath()}")
+		println(">> inFile : ${file} / ${getFile()}")
+		if (getRpath() == null && getFile() == null) return;
+
 		ModelViewer viewer = new ModelViewer(assetCfg)
 		if (assetClassLoader != null) viewer.addClassLoader(assetClassLoader);
 		viewer.addAssetDirs(getAssetDirs())
-		println("inRPath : ${rpath} / ${getRpath()}")
-		println("inFile : ${file} / ${getFile()}")
 		if (getRpath() != null) {
 			viewer.showModel("fake", getRpath())
-		} else {
+		} else if (getFile() != null) {
 			viewer.showModel("fake", getFile())
 		}
 		viewer.running.await()

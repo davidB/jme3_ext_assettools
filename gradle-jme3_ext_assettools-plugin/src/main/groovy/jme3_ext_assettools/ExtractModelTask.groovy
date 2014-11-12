@@ -2,6 +2,8 @@ package jme3_ext_assettools
 
 import java.net.URL;
 import java.nio.file.Files;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
@@ -15,7 +17,6 @@ class ExtractModelTask extends DefaultTask {
 	FileCollection getAssetDirs() {
 		(assetDirs == null) ? null : project.files(assetDirs)
 	}
-
 
 	def file
 	File getFile() {
@@ -38,6 +39,12 @@ class ExtractModelTask extends DefaultTask {
 	}
 
 	def outBaseName
+	String getOutBaseName() {
+		if (outBaseName == null) return null
+		def v = (outBaseName instanceof Closure) ? outBaseName() : outBaseName
+		v.toString()
+	}
+
 	@OutputFiles
 	def outFiles
 	FileCollection getOutFiles(){
@@ -46,20 +53,23 @@ class ExtractModelTask extends DefaultTask {
 
 	@TaskAction
 	def action() {
-		if (outBaseName == null) {
+		Logger.getLogger("com.jme3").setLevel(Level.INFO)
+		if (getOutBaseName() == null) {
 			String p = (getRpath() != null)? getRpath() : getFile().getName()
 			p = p.replace('\\', '/')
-			int i0 = Math.max(0, p.lastIndexOf('/'))
-			outBaseName = p.subSequence(i0, p.indexOf('.', i0))
+			int begin = Math.max(0, p.lastIndexOf('/'))
+			int end = p.indexOf('.', begin)
+			end = (end<0) ? p.length() : end
+			outBaseName = p.subSequence(begin, end)
 		}
-		ModelExtractor extractor = new ModelExtractor(assetCfg)
-		if (assetClassLoader != null) {
-			extractor.assetManager.addClassLoader(assetClassLoader)
+		ModelExtractor extractor = new ModelExtractor(getAssetCfg())
+		if (getAssetClassLoader() != null) {
+			extractor.assetManager.addClassLoader(getAssetClassLoader())
 		}
 		extractor.addAssetDirs(getAssetDirs())
 		outFiles = project.files((getRpath() != null)
-			? extractor.extract(outBaseName, getRpath(), prefixTexture, getOutDir())
-			: extractor.extract(outBaseName, getFile(), prefixTexture, getOutDir())
+			? extractor.extract(getOutBaseName(), getRpath(), getPrefixTexture(), getOutDir())
+			: extractor.extract(getOutBaseName(), getFile(), getPrefixTexture(), getOutDir())
 		)
 	}
 }
