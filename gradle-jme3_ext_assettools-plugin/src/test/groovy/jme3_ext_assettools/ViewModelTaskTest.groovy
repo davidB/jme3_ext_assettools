@@ -17,7 +17,7 @@ class ViewModelTaskTest {
 	public void showModel() {
 		Project project = ProjectBuilder.builder().build()
 		ViewModelTask task = project.task('view', type: ViewModelTask)
-		task.inRPath = "Models/Teapot/Teapot.obj"
+		task.rpath = "Models/Teapot/Teapot.obj"
 		task.assetClassLoader = Thread.currentThread().getContextClassLoader()
 		task.execute()
 		//Thread.sleep(10000);

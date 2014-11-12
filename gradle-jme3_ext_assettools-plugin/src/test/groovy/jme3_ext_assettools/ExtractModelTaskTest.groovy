@@ -13,32 +13,32 @@ class ExtractModelTaskTest {
 		assertTrue(task instanceof ExtractModelTask)
 	}
 
-	//@Test
+	@Test
 	public void extractTeapot() {
 		Project project = ProjectBuilder.builder().build()
 		ExtractModelTask task = project.task('extract', type: ExtractModelTask)
-		task.inRPath = "Models/Teapot/Teapot.obj"
+		task.rpath = "Models/Teapot/Teapot.obj"
 		task.assetClassLoader = Thread.currentThread().getContextClassLoader()
 		task.outBaseName = "teapot"
-		task.outDir = project.file("build/test-extract")
+		task.outDir = "build/test-extract"
 		task.execute()
-		println(task.files)
-		task.outDir.deleteDir()
+		println(">> " + task.outputs.files.files)
+		task.getOutDir().deleteDir()
 		//Thread.sleep(10000);
 	}
 
-	//@Test
+	@Test
 	public void extractNinja() {
 		Project project = ProjectBuilder.builder().build()
 		ExtractModelTask task = project.task('extract', type: ExtractModelTask)
-		task.inRPath = "Models/Ninja/Ninja.mesh.xml"
+		task.rpath = "Models/Ninja/Ninja.mesh.xml"
 		task.assetClassLoader = Thread.currentThread().getContextClassLoader()
 		//task.outBaseName = "ninja"
 		//task.outDir = project.file("build/test-extract")
 		//task.prefixTexture = true
 		task.execute()
-		println(task.files)
-		task.outDir.deleteDir()
+		println(">> " + task.outputs.files.files)
+		task.getOutDir().deleteDir()
 		//Thread.sleep(10000);
 	}
 
@@ -46,14 +46,15 @@ class ExtractModelTaskTest {
 	public void extractSponzaObj() {
 		Project project = ProjectBuilder.builder().build()
 		ExtractModelTask task = project.task('extract', type: ExtractModelTask)
-		task.inFile = new File(System.getProperty("user.home"), "Téléchargements/t/crytek/sponza.obj")
+		task.file = new File(System.getProperty("user.home"), "Téléchargements/t/crytek/sponza.obj")
 		//task.assetClassLoader = Thread.currentThread().getContextClassLoader()
 		//task.outBaseName = "ninja"
 		//task.outDir = project.file("build/test-extract")
 		//task.prefixTexture = true
 		task.execute()
-		println(task.files)
-		task.outDir.deleteDir()
+		println(">> " + task.outputs.files.files)
+		assertEquals(task.outFiles.files, task.outputs.files.files)
+		task.getOutDir().deleteDir()
 		//Thread.sleep(10000);
 	}
 

@@ -1,10 +1,16 @@
 package jme3_ext_assettools;
 
+import java.io.File;
 import java.net.URL;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 
+import org.gradle.api.file.FileCollection;
+
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.plugins.FileLocator;
 import com.jme3.light.DirectionalLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
@@ -24,6 +30,7 @@ public class ModelViewer extends SimpleApplication{
 	}
 
 	public final CountDownLatch running = new CountDownLatch(1);
+	public final List<File> assetDirs = new LinkedList<>();
 
 	public ModelViewer(URL assetCfg) {
 		AppSettings settings = new AppSettings(true);
@@ -55,6 +62,40 @@ public class ModelViewer extends SimpleApplication{
 				return null;
 			}
 		});
+	}
+
+	public void addAssetDirs(final FileCollection dirs) {
+		if (dirs == null || dirs.isEmpty()) return;
+		final SimpleApplication app = this;
+		for( File f : dirs.getFiles()) {
+			final File f0 = f;
+			if (f.isDirectory()) {
+				this.assetDirs.add(f);
+				this.enqueue(new Callable<Void>() {
+					@Override
+					public Void call() throws Exception {
+						app.getAssetManager().registerLocator(f0.getAbsolutePath(), FileLocator.class);
+						return null;
+					}
+				});
+
+			}
+		}
+	}
+
+	public void showModel(final String name, final File f) {
+		String apath = f.getAbsolutePath();
+		String rpath = null;
+		for(File d : assetDirs) {
+			System.out.println("check : " + rpath);
+			if (apath.startsWith(d.getAbsolutePath())) {
+				rpath = apath.substring(d.getAbsolutePath().length()+1);
+			}
+		}
+		System.out.println("rpath : " + rpath);
+		if (rpath != null) {
+			showModel(name, rpath);
+		}
 	}
 
 	public void showModel(final String name, final String path) {

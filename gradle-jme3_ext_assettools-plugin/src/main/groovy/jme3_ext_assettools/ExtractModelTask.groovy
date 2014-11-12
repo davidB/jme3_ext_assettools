@@ -4,27 +4,45 @@ import java.nio.file.Files;
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
+import org.gradle.api.file.FileCollection
 import org.gradle.api.tasks.*
 
 class ExtractModelTask extends DefaultTask {
 	def URL assetCfg
-
-	def File inFile
-
 	def assetClassLoader
-	def String inRPath
+
+	def file
+	File getFile() {
+		return project.file(file)
+	}
+
+	def rpath
+	String getRpath() {
+		(rpath == null) ? null : rpath.toString()
+	}
 
 	def boolean prefixTexture = true
 
-	@OutputDirectory
-	def File outDir = project.file("${project.buildDir}/assets")
+	//@OutputDirectory
+	def outDir
+	File getOutDir(){
+		if (outDir == null) {
+			outDir = "${project.buildDir}/assets"
+		}
+		project.file(outDir)
+	}
+
 	def outBaseName
-	def Collection<File> files
+	@OutputFiles
+	def outFiles
+	FileCollection getOutFiles(){
+		(outFiles == null)? project.files() : project.files(outFiles)
+	}
 
 	@TaskAction
 	def action() {
 		if (outBaseName == null) {
-			String p = (inRPath!=null)? inRPath : inFile.getName()
+			String p = (getRpath() != null)? getRpath() : getFile().getName()
 			p = p.replace('\\', '/')
 			int i0 = Math.max(0, p.lastIndexOf('/'))
 			outBaseName = p.subSequence(i0, p.indexOf('.', i0))
@@ -33,6 +51,9 @@ class ExtractModelTask extends DefaultTask {
 		if (assetClassLoader) {
 			extractor.assetManager.addClassLoader(assetClassLoader)
 		}
-		files = (inRPath != null) ? extractor.extract(outBaseName, inRPath, prefixTexture, outDir) : extractor.extract(outBaseName, inFile, prefixTexture, outDir)
+		outFiles = project.files((getRpath() != null)
+			? extractor.extract(outBaseName, getRpath(), prefixTexture, getOutDir())
+			: extractor.extract(outBaseName, getFile(), prefixTexture, getOutDir())
+		)
 	}
 }
