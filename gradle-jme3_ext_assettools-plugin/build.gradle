@@ -31,6 +31,7 @@ dependencies {
 	//compile 'com.squareup.okhttp:okhttp:2.0.0' // compiled with jdk 1.7
 	compile "com.jme3:jme3-core:${v_jme}"
 	compile "com.jme3:jme3-blender:${v_jme}"
+	runtime "com.jme3:jme3-plugins:${v_jme}"
 	runtime "com.jme3:jme3-desktop:${v_jme}"
 	runtime "com.jme3:jme3-lwjgl:${v_jme}"
 	testRuntime "com.jme3:jme3-testdata:3.1.0-snapshot-github"
