@@ -1,0 +1,177 @@
+buildscript {
+	repositories {
+		jcenter()
+		mavenLocal()
+	}
+	dependencies {
+		classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:0.5'
+		classpath 'net.alchim31.gradle:gradle-jme3_ext_assettools-plugin:0.1.0'
+		classpath 'de.undercouch:gradle-download-task:1.1'
+	}
+}
+
+apply plugin: 'eclipse'
+
+group = "net.alchim31.assets"
+version = "0.1.0"
+def description = 'Assets packaged for jme3 from various places'
+
+repositories {
+	jcenter()
+	maven { url "http://updates.jmonkeyengine.org/maven/"}
+	maven { url "http://dl.bintray.com/davidb/jme3stuff" }
+	mavenLocal()
+}
+
+def v_jme = '3.0.10'
+
+subprojects {
+	apply plugin: 'download-task'
+	apply plugin: 'java'
+	//apply plugin: 'maven-publish'
+	//apply plugin: 'com.jfrog.bintray'
+
+	dependencies {
+		compile "com.jme3:jme3-core:${v_jme}"
+	}
+
+  // Define a new property
+  ext.modelName = 'noname'
+	ext.archivePath = ''
+	ext.modelPathInArchive = "${modelName}.obj"
+	ext.unarchiveDir = "${buildDir}/unarchive/"
+
+	task unarchive(type: Copy) {
+		from {zipTree(archivePath)}
+		into {unarchiveDir}
+	}
+
+	task convert(type: jme3_ext_assettools.ExtractModelTask) {
+		file = {"${unarchiveDir}/${modelPathInArchive}"}
+		outBaseName = {modelName}
+		//task.assetClassLoader = Thread.currentThread().getContextClassLoader()
+		//task.outBaseName = ext.modelName
+		//task.outDir = project.file("build/test-extract")
+		//task.prefixTexture = true
+	}
+
+	task view(type: jme3_ext_assettools.ViewModelTask) {
+		assetDirs = {convert.outDir}
+		//file = {convert.outputs.files.filter({it.getName().endsWith(".j3o")}).getSingleFile()}
+		rpath = {"Models/${modelName}.j3o"}
+	}
+
+	task pack(type: Jar) {
+		from convert
+	}
+
+  // Define a task
+  task show << {
+    println 'project:    ' + project.path
+    println 'modelName:  ' + modelName
+		println 'archivePath:' + archivePath
+  }
+
+  unarchive.mustRunAfter{'downloadFile'}
+	convert.mustRunAfter(unarchive)
+	view.mustRunAfter(convert)
+}
+
+// Inject special case configuration into a particular project
+project(':teapot') {
+	ext.modelName = 'teapot'
+	//ext.archiveUrl = 'http://graphics.cs.williams.edu/data/meshes/teapot.zip'
+	ext.archivePath = "${buildDir}/teapot.zip"
+	ext.modelPathInArchive = "teapot.obj"
+	task downloadFile(type: de.undercouch.gradle.tasks.download.Download) {
+		src 'http://graphics.cs.williams.edu/data/meshes/teapot.zip'
+		dest buildDir
+	}
+}
+project(':crytek_sponza') {
+	ext.modelName = "crytek_sponza"
+	//ext.archiveUrl = 'http://graphics.cs.williams.edu/data/meshes/crytek-sponza.zip'
+	//ext.archivePath = "${buildDir}/crytek-sponza.zip"
+	ext.archivePath = "${System.properties['user.home']}/Téléchargements/crytek-sponza.zip"
+	ext.modelPathInArchive = "crytek-sponza/sponza.obj"
+}
+
+project(':crytek_sponza2') {
+	ext.modelName = "sponza2"
+	//ext.archiveUrl = 'http://graphics.cs.williams.edu/data/meshes/crytek-sponza.zip'
+	//ext.archivePath = "${buildDir}/crytek-sponza.zip"
+	//ext.archivePath = "${System.properties['user.home']}/Téléchargements/crytek-sponza.zip"
+	ext.unarchiveDir = "${System.properties['user.home']}/Téléchargements/t/crytek"
+	ext.modelPathInArchive = "sponza.obj"
+}
+
+project(':dabrovic_sponza'){
+	ext.modelName = 'sponza3'
+	//ext.archiveUrl = 'http://graphics.cs.williams.edu/data/meshes/teapot.zip'
+	ext.archivePath = "${buildDir}/dabrovic-sponza.zip"
+	ext.modelPathInArchive = "sponza.obj"
+	task downloadFile(type: de.undercouch.gradle.tasks.download.Download) {
+		src 'http://graphics.cs.williams.edu/data/meshes/dabrovic-sponza.zip'
+		dest buildDir
+	}
+	task lowercase(type : Copy) {
+		from unarchiveDir
+		exclude { it.getName().toLowerCase() == it.getName() }
+		rename { it.toLowerCase()	}
+		into unarchiveDir
+	}
+}
+
+/*
+def pomConfig = {
+	licenses {
+		license {
+			name "Attribution"
+			url "http://creativecommons.org/licenses/by/2.0/"
+			distribution "repo"
+		}
+	}
+}
+publishing {
+	publications {
+		mavenStuff(MavenPublication) {
+			from components.java
+			artifact sourcesJar
+			pom.withXml {
+				def root = asNode()
+				root.appendNode('description', description)
+				root.children().last() + pomConfig
+			}
+		}
+	}
+}
+
+bintray {
+	user = bintray_user
+	key = bintray_api_key
+
+	publications = ['mavenStuff'] //When uploading Maven-based publication files
+	//dryRun = false //Whether to run this as dry-run, without deploying
+	publish = true //If version should be auto published after an upload
+	pkg {
+		repo = 'jme3stuff'
+		name = project.name
+		desc = description
+		websiteUrl = "https://github.com/davidB/${project.name}"
+		issueTrackerUrl = "https://github.com/davidB/${project.name}/issues"
+		vcsUrl = "https://github.com/davidB/${project.name}.git"
+		licenses = ['Attribution']
+		labels = ['gradle', 'jme3', 'tools']
+		publicDownloadNumbers = true
+		version {
+			name = project.version
+			vcsTag = project.version
+			attributes = ['gradle-plugin': "net.alchim31.jme3_ext:${project.group}:${project.name}"] //Optional version-level attributes
+			//gpg {
+			//	sign = true //Determines whether to GPG sign the files. The default is false
+			//	passphrase = 'optional, the passphrase for GPG signing'
+			//}
+		}
+	}
+}
+*/
