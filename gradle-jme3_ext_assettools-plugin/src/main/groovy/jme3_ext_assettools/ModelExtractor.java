@@ -6,6 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.gradle.api.file.FileCollection;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.MaterialKey;
@@ -22,6 +26,7 @@ import com.jme3.texture.Texture;
 //TODO generate filename with checksum (md5)
 public class ModelExtractor {
 	public final AssetManager assetManager;
+	public final List<File> assetDirs = new LinkedList<>();
 
 	public ModelExtractor(URL assetCfg) throws Exception {
 		if (assetCfg == null){
@@ -32,14 +37,37 @@ public class ModelExtractor {
 		assetManager.registerLoader(BlenderLoader.class, "blend");
 	}
 
+	public void addAssetDirs(final FileCollection dirs) {
+		if (dirs == null || dirs.isEmpty()) return;
+		for( File f : dirs.getFiles()) {
+			final File f0 = f;
+			if (f.isDirectory()) {
+				this.assetDirs.add(f);
+				assetManager.registerLocator(f0.getAbsolutePath(), FileLocator.class);
+			}
+		}
+	}
+
 	public Collection<File> extract(String name, String rpath, boolean prefixTexture, File froot) {
 		return extract(name, assetManager.loadModel(rpath), prefixTexture, froot);
 	}
 
 	public Collection<File> extract(String name, File f, boolean prefixTexture, File froot) {
-		assetManager.registerLocator(f.getParent(), FileLocator.class);
-		Collection<File> b = extract(name, assetManager.loadModel(f.getName()), prefixTexture, froot);
-		assetManager.unregisterLocator(f.getParent(), FileLocator.class);
+		String apath = f.getAbsolutePath();
+		String rpath = null;
+		for(File d : assetDirs) {
+			if (apath.startsWith(d.getAbsolutePath())) {
+				rpath = apath.substring(d.getAbsolutePath().length()+1);
+			}
+		}
+		Collection<File> b;
+		if (rpath == null) {
+			assetManager.registerLocator(f.getParent(), FileLocator.class);
+			b = extract(name, assetManager.loadModel(f.getName()), prefixTexture, froot);
+			assetManager.unregisterLocator(f.getParent(), FileLocator.class);
+		} else {
+			b = extract(name, assetManager.loadModel(rpath), prefixTexture, froot);
+		}
 		return b;
 	}
 

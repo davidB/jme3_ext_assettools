@@ -1,5 +1,6 @@
 package jme3_ext_assettools
 
+import java.net.URL;
 import java.nio.file.Files;
 
 import org.gradle.api.DefaultTask
@@ -10,12 +11,16 @@ import org.gradle.api.tasks.*
 class ExtractModelTask extends DefaultTask {
 	def URL assetCfg
 	def assetClassLoader
+	def assetDirs
+	FileCollection getAssetDirs() {
+		(assetDirs == null) ? null : project.files(assetDirs)
+	}
+
 
 	def file
 	File getFile() {
 		return project.file(file)
 	}
-
 	def rpath
 	String getRpath() {
 		(rpath == null) ? null : rpath.toString()
@@ -48,9 +53,10 @@ class ExtractModelTask extends DefaultTask {
 			outBaseName = p.subSequence(i0, p.indexOf('.', i0))
 		}
 		ModelExtractor extractor = new ModelExtractor(assetCfg)
-		if (assetClassLoader) {
+		if (assetClassLoader != null) {
 			extractor.assetManager.addClassLoader(assetClassLoader)
 		}
+		extractor.addAssetDirs(getAssetDirs())
 		outFiles = project.files((getRpath() != null)
 			? extractor.extract(outBaseName, getRpath(), prefixTexture, getOutDir())
 			: extractor.extract(outBaseName, getFile(), prefixTexture, getOutDir())

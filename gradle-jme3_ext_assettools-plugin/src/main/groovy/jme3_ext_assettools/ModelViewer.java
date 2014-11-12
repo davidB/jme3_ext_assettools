@@ -87,12 +87,10 @@ public class ModelViewer extends SimpleApplication{
 		String apath = f.getAbsolutePath();
 		String rpath = null;
 		for(File d : assetDirs) {
-			System.out.println("check : " + rpath);
 			if (apath.startsWith(d.getAbsolutePath())) {
 				rpath = apath.substring(d.getAbsolutePath().length()+1);
 			}
 		}
-		System.out.println("rpath : " + rpath);
 		if (rpath != null) {
 			showModel(name, rpath);
 		}

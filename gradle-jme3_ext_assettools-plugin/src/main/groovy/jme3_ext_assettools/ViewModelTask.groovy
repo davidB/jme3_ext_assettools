@@ -9,11 +9,12 @@ import org.gradle.api.tasks.*
 
 class ViewModelTask extends DefaultTask {
 	def URL assetCfg
-
+	def assetClassLoader
 	def assetDirs
 	FileCollection getAssetDirs() {
-		project.files(assetDirs)
+		(assetDirs == null) ? null : project.files(assetDirs)
 	}
+
 	def rpath
 	String getRpath() {
 		return rpath.toString()
@@ -22,13 +23,12 @@ class ViewModelTask extends DefaultTask {
 	File getFile() {
 		(file == null) ? null : project.file(file)
 	}
-	def assetClassLoader
 
 	@TaskAction
 	def action() {
 		ModelViewer viewer = new ModelViewer(assetCfg)
 		if (assetClassLoader != null) viewer.addClassLoader(assetClassLoader);
-		viewer.addAssetDirs(assetDirs)
+		viewer.addAssetDirs(getAssetDirs())
 		println("inRPath : ${rpath} / ${getRpath()}")
 		println("inFile : ${file} / ${getFile()}")
 		if (getRpath() != null) {
