@@ -46,13 +46,13 @@ subprojects {
 		into {unarchiveDir}
 	}
 
-	task convert(type: jme3_ext_assettools.ExtractModelTask) {
+	task convert(type: jme3_ext_assettools.ModelExtractorTask) {
 		file = {"${unarchiveDir}/${modelPathInArchive}"}
 		outBaseName = {modelName}
+		prefixTexture = true
 		//task.assetClassLoader = Thread.currentThread().getContextClassLoader()
 		//task.outBaseName = ext.modelName
 		//task.outDir = project.file("build/test-extract")
-		//task.prefixTexture = true
 	}
 
 	task view(type: jme3_ext_assettools.ViewModelTask) {

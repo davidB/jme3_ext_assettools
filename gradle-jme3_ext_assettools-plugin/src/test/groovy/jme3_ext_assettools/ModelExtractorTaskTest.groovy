@@ -5,18 +5,18 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Test
 import static org.junit.Assert.*
 
-class ExtractModelTaskTest {
+class ModelExtractorTaskTest {
 	@Test
 	public void canAddTaskToProject() {
 		Project project = ProjectBuilder.builder().build()
-		def task = project.task('greeting', type: ExtractModelTask)
-		assertTrue(task instanceof ExtractModelTask)
+		def task = project.task('greeting', type: ModelExtractorTask)
+		assertTrue(task instanceof ModelExtractorTask)
 	}
 
 	@Test
 	public void extractTeapot() {
 		Project project = ProjectBuilder.builder().build()
-		ExtractModelTask task = project.task('extract', type: ExtractModelTask)
+		ModelExtractorTask task = project.task('extract', type: ModelExtractorTask)
 		task.rpath = "Models/Teapot/Teapot.obj"
 		task.assetClassLoader = Thread.currentThread().getContextClassLoader()
 		task.outBaseName = "teapot"
@@ -30,7 +30,7 @@ class ExtractModelTaskTest {
 	@Test
 	public void extractNinja() {
 		Project project = ProjectBuilder.builder().build()
-		ExtractModelTask task = project.task('extract', type: ExtractModelTask)
+		ModelExtractorTask task = project.task('extract', type: ModelExtractorTask)
 		task.rpath = "Models/Ninja/Ninja.mesh.xml"
 		task.assetClassLoader = Thread.currentThread().getContextClassLoader()
 		//task.outBaseName = "ninja"
@@ -45,7 +45,7 @@ class ExtractModelTaskTest {
 	@Test
 	public void extractSponzaObj() {
 		Project project = ProjectBuilder.builder().build()
-		ExtractModelTask task = project.task('extract', type: ExtractModelTask)
+		ModelExtractorTask task = project.task('extract', type: ModelExtractorTask)
 		task.file = new File(System.getProperty("user.home"), "Téléchargements/t/crytek/sponza.obj")
 		//task.assetClassLoader = Thread.currentThread().getContextClassLoader()
 		//task.outBaseName = "ninja"
