@@ -22,7 +22,10 @@ import org.gradle.api.internal.file.DefaultFileVisitDetails;
 import org.gradle.api.tasks.OutputFiles;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.internal.nativeplatform.filesystem.FileSystem;
-import org.gradle.internal.nativeplatform.services.FileSystems;
+import org.gradle.internal.nativeintegration.filesystem.services.FileSystemServices;
+import org.gradle.internal.os.OperatingSystem;
+
+import com.jme3.math.Transform;
 
 public class ModelExtractorTask extends DefaultTask {
 	public URL assetCfg;
@@ -43,7 +46,19 @@ public class ModelExtractorTask extends DefaultTask {
 		return (rpath == null) ? null : rpath.toString();
 	}
 
-	public boolean prefixTexture = true;
+	@Setter Object prefixTexture = true;
+	public boolean getPrefixTexture() {
+		if (prefixTexture == null) return true;
+		Object v = (prefixTexture instanceof Closure) ? ((Closure<?>)prefixTexture).call() : prefixTexture;
+		return Boolean.valueOf(v.toString());
+	}
+
+	@Setter Object scale = 1.0f;
+	public float getScale() {
+		if (scale == null) return 1.0f;
+		Object v = (scale instanceof Closure) ? ((Closure<?>)scale).call() : scale;
+		return Float.valueOf(v.toString());
+	}
 
 	//@OutputDirectory
 	@Setter private Object outDir;
@@ -88,9 +103,11 @@ public class ModelExtractorTask extends DefaultTask {
 			extractor.assetManager.addClassLoader(assetClassLoader);
 		}
 		extractor.addAssetDirs(getAssetDirs());
+		Transform t = new Transform();
+		t.setScale(getScale());
 		final Collection<File> files = (getRpath() != null)
-			? extractor.extract(getOutBaseName(), getRpath(), prefixTexture, getOutDir())
-			: extractor.extract(getOutBaseName(), getFile(), prefixTexture, getOutDir())
+			? extractor.extract(getOutBaseName(), getRpath(), getPrefixTexture(), getOutDir(), t)
+			: extractor.extract(getOutBaseName(), getFile(), getPrefixTexture(), getOutDir(), t)
 		;
 //		outFiles = getProject().files(files);
 
@@ -106,10 +123,11 @@ public class ModelExtractorTask extends DefaultTask {
 //		});
 //		outFiles = new DirectoryFileTree(getOutDir(), p);
 
+		final FileSystem fileSystem = new FileSystemServices().createFileSystem(OperatingSystem.current());
 		outFiles = new AbstractFileTree() {
 			@Override
 			public FileTree visit(FileVisitor visitor) {
-				FileSystem fileSystem = FileSystems.getDefault();
+
 				AtomicBoolean stopFlag = new AtomicBoolean();
 				int parentPathLg = getOutDir().getAbsolutePath().length() + 1;
 				for(File file : files) {

@@ -1,6 +1,7 @@
 package jme3_ext_assettools;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -11,12 +12,14 @@ import java.util.List;
 
 import org.gradle.api.file.FileCollection;
 
+import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.TextureKey;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.material.Material;
+import com.jme3.math.Transform;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.plugins.OBJLoader;
 import com.jme3.scene.plugins.blender.BlenderLoader;
@@ -34,6 +37,7 @@ public class ModelExtractor {
 		}
 		assetManager = JmeSystem.newAssetManager(assetCfg);
 		assetManager.registerLoader(OBJLoader.class, "obj");
+		assetManager.registerLoader(MTLoaderExt.class, "mtl");
 		assetManager.registerLoader(BlenderLoader.class, "blend");
 	}
 
@@ -48,11 +52,11 @@ public class ModelExtractor {
 		}
 	}
 
-	public Collection<File> extract(String name, String rpath, boolean prefixTexture, File froot) {
-		return extract(name, assetManager.loadModel(rpath), prefixTexture, froot);
+	public Collection<File> extract(String name, String rpath, boolean prefixTexture, File froot, Transform transform) {
+		return extract(name, assetManager.loadModel(rpath), prefixTexture, froot, transform);
 	}
 
-	public Collection<File> extract(String name, File f, boolean prefixTexture, File froot) {
+	public Collection<File> extract(String name, File f, boolean prefixTexture, File froot, Transform transform) {
 		String apath = f.getAbsolutePath();
 		String rpath = null;
 		for(File d : assetDirs) {
@@ -63,15 +67,18 @@ public class ModelExtractor {
 		Collection<File> b;
 		if (rpath == null) {
 			assetManager.registerLocator(f.getParent(), FileLocator.class);
-			b = extract(name, assetManager.loadModel(f.getName()), prefixTexture, froot);
+			b = extract(name, assetManager.loadModel(f.getName()), prefixTexture, froot, transform);
 			assetManager.unregisterLocator(f.getParent(), FileLocator.class);
 		} else {
-			b = extract(name, assetManager.loadModel(rpath), prefixTexture, froot);
+			b = extract(name, assetManager.loadModel(rpath), prefixTexture, froot, transform);
 		}
 		return b;
 	}
 
-	public Collection<File> extract(String name, Spatial root, boolean prefixTexture, File froot) {
+	public Collection<File> extract(String name, Spatial root, boolean prefixTexture, File froot, Transform transform) {
+		if (transform != null) {
+			root.setLocalTransform(transform.combineWithParent(root.getLocalTransform()));
+		}
 		HashSet<File> b = new HashSet<File>();
 		froot = froot.getAbsoluteFile();
 		try {
@@ -94,7 +101,14 @@ public class ModelExtractor {
 					t.setKey(kdest);
 					f = new File(froot, kdest.getName());
 					f.getParentFile().mkdirs();
-					Files.copy(assetManager.locateAsset(ksrc).openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					AssetInfo ai = assetManager.locateAsset(ksrc);
+					if (ai == null) {
+						//System.err.println("not found : " + ksrc);
+					} else {
+						try (InputStream in = ai.openStream()) {
+							Files.copy(ai.openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+						}
+					}
 				}
 				b.add(f);
 			}
