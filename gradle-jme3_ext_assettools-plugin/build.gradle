@@ -39,6 +39,9 @@ dependencies {
 	testRuntime "com.jme3:jme3-testdata:3.1.0-snapshot-github"
 }
 
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
+
 compileGroovy {
 	sourceCompatibility = '1.7'
 	targetCompatibility = '1.7'
