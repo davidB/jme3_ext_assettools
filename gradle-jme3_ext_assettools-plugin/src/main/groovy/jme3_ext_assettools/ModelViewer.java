@@ -11,11 +11,15 @@ import org.gradle.api.file.FileCollection;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.plugins.FileLocator;
+import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
+import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.debug.Grid;
 import com.jme3.system.AppSettings;
 
 
@@ -45,6 +49,7 @@ public class ModelViewer extends SimpleApplication{
 	public void simpleInitApp() {
 		makeLigths(rootNode);
 		setupCamera();
+		rootNode.attachChild(makeGrid(Vector3f.ZERO, 10, ColorRGBA.Green));
 	}
 
 	@Override
@@ -115,10 +120,26 @@ public class ModelViewer extends SimpleApplication{
 		dl.setColor(ColorRGBA.White);
 		dl.setDirection(Vector3f.UNIT_XYZ.negate());
 		anchor.addLight(dl);
+
+		AmbientLight al = new AmbientLight();
+		al.setColor(new ColorRGBA(0.2f, 0.2f, 0.2f, 1.0f));
+		anchor.addLight(al);
+	}
+
+	private Geometry makeGrid(Vector3f pos, int size, ColorRGBA color){
+		Geometry g = new Geometry("wireframe grid", new Grid(size, size, 1.0f) );
+		Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+		mat.getAdditionalRenderState().setWireframe(true);
+		mat.setColor("Color", color);
+		g.setMaterial(mat);
+		g.center().move(pos);
+		return g;
 	}
 
 	void setupCamera() {
 		flyCam.setEnabled(true);
+		cam.setLocation(new Vector3f(-5f,5f,5f));
+		cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
 //		inputManager.setCursorVisible(true);
 //		ChaseCamera chaseCam = new ChaseCamera(cam, target, inputManager);
 //		chaseCam.setDefaultDistance(6.0f);
