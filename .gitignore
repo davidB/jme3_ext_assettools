@@ -1,4 +1,7 @@
 /lib
+tmp
+*.off
+*.orig
 
 # gradle
 build
