@@ -16,12 +16,7 @@ group = "net.alchim31.assets"
 version = "0.1.0"
 def description = 'Assets packaged for jme3 from various places'
 
-repositories {
-	jcenter()
-	maven { url "http://updates.jmonkeyengine.org/maven/"}
-	maven { url "http://dl.bintray.com/davidb/jme3stuff" }
-	mavenLocal()
-}
+
 
 def v_jme = '3.0.10'
 
@@ -34,6 +29,16 @@ subprojects {
 	group = "net.alchim31.assets"
 	version = "0.1.0"
 
+	repositories {
+		jcenter()
+		maven { url "http://updates.jmonkeyengine.org/maven/"}
+		maven { url "http://dl.bintray.com/davidb/jme3stuff" }
+		mavenLocal()
+	}
+
+	configurations {
+			assets
+	}
 	dependencies {
 		compile "com.jme3:jme3-core:${v_jme}"
 	}
@@ -42,6 +47,7 @@ subprojects {
   ext.modelName = project.name
 	ext.archivePath = ''
 	ext.modelPathInArchive = "${modelName}.obj"
+	ext.modelPathInAssetCP = null
 	ext.unarchiveDir = "${buildDir}/unarchive/"
 	ext.modelScale = 1.0
 
@@ -106,7 +112,9 @@ subprojects {
 // 	}
 
 	task convertToJ3O(type: jme3_ext_assettools.ModelExtractorTask) {
+		rpath = {modelPathInAssetCP}
 		file = {"${unarchiveDir}/${modelPathInArchive}"}
+		assetClassPath = configurations.assets
 		outBaseName = {modelName}
 		prefixTexture = true
 		scale = {modelScale}
@@ -150,10 +158,6 @@ subprojects {
 	convert.mustRunAfter(unarchive)
 	view.mustRunAfter(convert)
 	pack.mustRunAfter(view)
-
-	task prepare {
-		dependsOn('unarchive','convert', 'view','pack')
-	}
 
 	def pomConfig = {
 		licenses {
@@ -210,20 +214,53 @@ subprojects {
 }
 
 // Inject special case configuration into a particular project
+// project(':teapot') {
+// 	bintray.pkg {
+// 		desc = '''Martin Newell modeled a teapot using bicubic Bezier patches in 1975 as part of an entire tea set. It first appeared in his Ph.D. dissertation. Jim Blinn scaled the teapot horizontally by 1.3x to cancel the effect of the rectangular pixels on their display. The original had no bottom; most variations add one. Kenzie Lamar at Vicarious Visions created this version from the default teapot model in 3D Studio Max. He resized the top so that it fits snugly, created a shell and welded the spout and handle so that the teapot is a manifold without boundary, and created a unique and consistent-resolution texture parameterization for the entire model.'''
+// 		websiteUrl = 'http://graphics.cs.williams.edu/data/meshes.xml'
+// 	}
+// 	ext.archivePath = "${buildDir}/teapot.zip"
+// 	//ext.modelPathInArchive = "teapot.obj"
+// 	ext.modelScale = 0.01
+// 	task downloadFile(type: de.undercouch.gradle.tasks.download.Download) {
+// 		src 'http://graphics.cs.williams.edu/data/meshes/teapot.zip'
+// 		dest buildDir
+// 	}
+// task prepare {
+// 		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
+// }
+// }
+
+// project(':teapot') {
+// 	bintray.pkg {
+// 		desc = '''Martin Newell modeled a teapot using bicubic Bezier patches in 1975 as part of an entire tea set. It first appeared in his Ph.D. dissertation. Jim Blinn scaled the teapot horizontally by 1.3x to cancel the effect of the rectangular pixels on their display. The original had no bottom; most variations add one. Kenzie Lamar at Vicarious Visions created this version from the default teapot model in 3D Studio Max. He resized the top so that it fits snugly, created a shell and welded the spout and handle so that the teapot is a manifold without boundary, and created a unique and consistent-resolution texture parameterization for the entire model.'''
+// 		websiteUrl = 'http://graphics.cs.williams.edu/data/meshes.xml'
+// 	}
+//  // teapot.blend made by hand from the .obj
+// 	ext.modelPathInArchive = "teapot.blend"
+// 	task copyBlend(type: Copy) {
+// 		from "${projectDir}/teapot.blend"
+// 		into {unarchiveDir}
+// 	}
+// 	task prepare  {
+// 		dependsOn('copyBlend','convert', 'view','pack')
+// 	}
+// }
+
 project(':teapot') {
+	version = "0.2.0"
 	bintray.pkg {
 		desc = '''Martin Newell modeled a teapot using bicubic Bezier patches in 1975 as part of an entire tea set. It first appeared in his Ph.D. dissertation. Jim Blinn scaled the teapot horizontally by 1.3x to cancel the effect of the rectangular pixels on their display. The original had no bottom; most variations add one. Kenzie Lamar at Vicarious Visions created this version from the default teapot model in 3D Studio Max. He resized the top so that it fits snugly, created a shell and welded the spout and handle so that the teapot is a manifold without boundary, and created a unique and consistent-resolution texture parameterization for the entire model.'''
 		websiteUrl = 'http://graphics.cs.williams.edu/data/meshes.xml'
+		labels = ['jme3', 'assets', 'model_3D', 'testdata']
 	}
-	ext.archivePath = "${buildDir}/teapot.zip"
-	ext.modelPathInArchive = "teapot.obj"
-	ext.modelScale = 0.01
-
-	task downloadFile(type: de.undercouch.gradle.tasks.download.Download) {
-		src 'http://graphics.cs.williams.edu/data/meshes/teapot.zip'
-		dest buildDir
+	ext.modelPathInAssetCP = "Models/Teapot/Teapot.obj"
+  dependencies {
+		assets "com.jme3:jme3-testdata:3.1.0-snapshot-github"
 	}
-	prepare.dependsOn(downloadFile)
+	task prepare {
+		dependsOn('convert', 'view','pack')
+	}
 }
 
 project(':crytek_sponza') {
@@ -238,7 +275,9 @@ project(':crytek_sponza') {
 		src 'http://graphics.cs.williams.edu/data/meshes/crytek-sponza.zip'
 		dest buildDir
 	}
-	prepare.dependsOn(downloadFile)
+	task prepare {
+		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
+	}
 }
 
 project(':crytek_sponza2') {
@@ -251,6 +290,9 @@ project(':crytek_sponza2') {
 	ext.archivePath = "tmp/sponza2.zip"
 	ext.modelPathInArchive = "crytek/sponza.obj"
 	ext.modelScale = 0.01
+	task prepare {
+		dependsOn('unarchive','convert', 'view','pack')
+	}
 }
 
 project(':dabrovic_sponza'){
@@ -264,6 +306,9 @@ project(':dabrovic_sponza'){
 	task downloadFile(type: de.undercouch.gradle.tasks.download.Download) {
 		src 'http://graphics.cs.williams.edu/data/meshes/dabrovic-sponza.zip'
 		dest buildDir
+	}
+	task prepare {
+		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
 	}
 }
 
@@ -279,6 +324,9 @@ project(':lost_empire'){
 		src 'http://graphics.cs.williams.edu/data/meshes/lost-empire.zip'
 		dest buildDir
 	}
+	task prepare {
+		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
+	}
 }
 
 project(':buddha'){
@@ -293,8 +341,7 @@ project(':buddha'){
 		src 'http://graphics.cs.williams.edu/data/meshes/buddha.zip'
 		dest buildDir
 	}
-}
-
-subprojects {
-
+	task prepare {
+		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
+	}
 }
