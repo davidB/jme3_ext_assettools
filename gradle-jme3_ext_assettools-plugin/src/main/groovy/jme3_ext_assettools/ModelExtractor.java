@@ -53,7 +53,12 @@ public class ModelExtractor {
 	}
 
 	public Collection<File> extract(String name, String rpath, boolean prefixTexture, File froot, Transform transform) {
-		return extract(name, assetManager.loadModel(rpath), prefixTexture, froot, transform);
+		try {
+			return extract(name, assetManager.loadModel(rpath), prefixTexture, froot, transform);
+		} catch(Exception exc) {
+			String msg = String.format("failed to extract '%s' from '%s' into '%s'", name, rpath, froot);
+			throw new IllegalStateException(msg , exc);
+		}
 	}
 
 	public Collection<File> extract(String name, File f, boolean prefixTexture, File froot, Transform transform) {
@@ -65,85 +70,85 @@ public class ModelExtractor {
 			}
 		}
 		Collection<File> b;
+		String tmpAssetDir = null;
 		if (rpath == null) {
-			assetManager.registerLocator(f.getParent(), FileLocator.class);
-			b = extract(name, assetManager.loadModel(f.getName()), prefixTexture, froot, transform);
-			assetManager.unregisterLocator(f.getParent(), FileLocator.class);
-		} else {
-			b = extract(name, assetManager.loadModel(rpath), prefixTexture, froot, transform);
+			tmpAssetDir = f.getParent();
+			rpath = f.getName();
 		}
-		return b;
+		try {
+			if (tmpAssetDir != null) assetManager.registerLocator(tmpAssetDir, FileLocator.class);
+			b = extract(name, assetManager.loadModel(f.getName()), prefixTexture, froot, transform);
+			if (tmpAssetDir != null) assetManager.unregisterLocator(tmpAssetDir, FileLocator.class);
+			return b;
+		} catch(Exception exc) {
+			String msg = String.format("failed to extract '%s' from '%s' into '%s': file(%s), tmpAssetDir(%s)", name, rpath, froot, f, tmpAssetDir);
+			throw new IllegalStateException(msg , exc);
+		}
 	}
 
-	public Collection<File> extract(String name, Spatial root, boolean prefixTexture, File froot, Transform transform) {
+	public Collection<File> extract(String name, Spatial root, boolean prefixTexture, File froot, Transform transform) throws Exception {
 		if (transform != null) {
 			root.setLocalTransform(transform.combineWithParent(root.getLocalTransform()));
 		}
 		HashSet<File> b = new HashSet<File>();
 		froot = froot.getAbsoluteFile();
-		try {
-			BinaryExporter exporter = new BinaryExporter();
-			MaterialCollector mc = new MaterialCollector();
-			mc.collect(root, true);
-			for(Texture t : mc.textures){
-				TextureKey ksrc = (TextureKey)t.getKey();
-				File f = new File(froot, ksrc.getName());
-				if (!f.exists()) {
-					String folder = "Textures/" + (prefixTexture?name + "/" : "");
-					String kdestName = (ksrc.getFolder() == null || ksrc.getFolder().length() == 0)?  (folder + ksrc.getName()) : ksrc.getName().replace(ksrc.getFolder(), folder);
-					TextureKey kdest = new TextureKey(kdestName);
-					kdest.setAnisotropy(ksrc.getAnisotropy());
-					kdest.setAsCube(ksrc.isAsCube());
-					kdest.setAsTexture3D(ksrc.isAsTexture3D());
-					kdest.setFlipY(ksrc.isFlipY());
-					kdest.setGenerateMips(ksrc.isGenerateMips());
-					kdest.setTextureTypeHint(ksrc.getTextureTypeHint());
-					t.setKey(kdest);
-					f = new File(froot, kdest.getName());
-					f.getParentFile().mkdirs();
-					AssetInfo ai = assetManager.locateAsset(ksrc);
-					if (ai == null) {
-						//System.err.println("not found : " + ksrc);
-					} else {
-						try (InputStream in = ai.openStream()) {
-							Files.copy(ai.openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
-						}
+		BinaryExporter exporter = new BinaryExporter();
+		MaterialCollector mc = new MaterialCollector();
+		mc.collect(root, true);
+		for(Texture t : mc.textures){
+			TextureKey ksrc = (TextureKey)t.getKey();
+			File f = new File(froot, ksrc.getName());
+			if (!f.exists()) {
+				String folder = "Textures/" + (prefixTexture?name + "/" : "");
+				String kdestName = (ksrc.getFolder() == null || ksrc.getFolder().length() == 0)?  (folder + ksrc.getName()) : ksrc.getName().replace(ksrc.getFolder(), folder);
+				TextureKey kdest = new TextureKey(kdestName);
+				kdest.setAnisotropy(ksrc.getAnisotropy());
+				kdest.setAsCube(ksrc.isAsCube());
+				kdest.setAsTexture3D(ksrc.isAsTexture3D());
+				kdest.setFlipY(ksrc.isFlipY());
+				kdest.setGenerateMips(ksrc.isGenerateMips());
+				kdest.setTextureTypeHint(ksrc.getTextureTypeHint());
+				t.setKey(kdest);
+				f = new File(froot, kdest.getName());
+				f.getParentFile().mkdirs();
+				AssetInfo ai = assetManager.locateAsset(ksrc);
+				if (ai == null) {
+					//System.err.println("not found : " + ksrc);
+				} else {
+					try (InputStream in = ai.openStream()) {
+						Files.copy(ai.openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
 					}
+				}
+			}
+			b.add(f);
+		}
+		//			int count = 0;
+		for(Material t : mc.materials) {
+			MaterialKey k = (MaterialKey)t.getKey();
+			if (k == null) {
+				//					//TODO create name from checksum
+				//					count++;
+				//					k = new AssetKey<Material>("Materials/" + count + ".j3m");
+				//					t.setKey(k);
+				//					File f = new File(froot, k.getName());
+				//					if (!f.exists()) {
+				//						f.getParentFile().mkdirs();
+				//						exporter.save(t, f);
+				//					}
+				//					b.add(f);
+			} else {
+				File f = new File(froot, k.getName());
+				if (!f.exists()) {
+					f.getParentFile().mkdirs();
+					Files.copy(assetManager.locateAsset(k).openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				}
 				b.add(f);
 			}
-			//			int count = 0;
-			for(Material t : mc.materials) {
-				MaterialKey k = (MaterialKey)t.getKey();
-				if (k == null) {
-					//					//TODO create name from checksum
-					//					count++;
-					//					k = new AssetKey<Material>("Materials/" + count + ".j3m");
-					//					t.setKey(k);
-					//					File f = new File(froot, k.getName());
-					//					if (!f.exists()) {
-					//						f.getParentFile().mkdirs();
-					//						exporter.save(t, f);
-					//					}
-					//					b.add(f);
-				} else {
-					File f = new File(froot, k.getName());
-					if (!f.exists()) {
-						f.getParentFile().mkdirs();
-						Files.copy(assetManager.locateAsset(k).openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
-					}
-					b.add(f);
-				}
-			}
-			File f0 = new File(froot, "Models/" + name +".j3o");
-			exporter.save(root, f0);
-			b.add(f0);
-			return b;
-		} catch(RuntimeException exc) {
-			throw exc;
-		} catch(Exception exc) {
-			throw new RuntimeException("wrap:" + exc, exc);
 		}
+		File f0 = new File(froot, "Models/" + name +".j3o");
+		exporter.save(root, f0);
+		b.add(f0);
+		return b;
 	}
 }
 
