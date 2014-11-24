@@ -5,6 +5,7 @@ import groovy.lang.Closure;
 import java.io.File;
 import java.net.URL;
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,15 +22,24 @@ import org.gradle.api.internal.file.AbstractFileTree;
 import org.gradle.api.internal.file.DefaultFileVisitDetails;
 import org.gradle.api.tasks.OutputFiles;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.internal.nativeplatform.filesystem.FileSystem;
 import org.gradle.internal.nativeintegration.filesystem.services.FileSystemServices;
+import org.gradle.internal.nativeplatform.filesystem.FileSystem;
 import org.gradle.internal.os.OperatingSystem;
 
+import com.jme3.asset.plugins.FileLocator;
+import com.jme3.asset.plugins.UrlLocator;
+import com.jme3.asset.plugins.ZipLocator;
 import com.jme3.math.Transform;
 
 public class ModelExtractorTask extends DefaultTask {
 	public URL assetCfg;
 	public ClassLoader assetClassLoader;
+	@Setter private Object assetClassPath;
+	public FileCollection getAssetClassPath() {
+		if (assetClassPath == null) return null;
+		Object v = (assetClassPath instanceof Closure) ? ((Closure<?>)assetClassPath).call() : assetClassPath;
+		return getProject().files(v);
+	}
 
 	@Setter private Object assetDirs;
 	public FileCollection getAssetDirs() {
@@ -43,7 +53,9 @@ public class ModelExtractorTask extends DefaultTask {
 
 	@Setter private Object rpath;
 	public String getRpath() {
-		return (rpath == null) ? null : rpath.toString();
+		if (rpath == null) return null;
+		Object v = (rpath instanceof Closure) ? ((Closure<?>)rpath).call() : rpath;
+		return v.toString();
 	}
 
 	@Setter Object prefixTexture = true;
@@ -101,6 +113,30 @@ public class ModelExtractorTask extends DefaultTask {
 		ModelExtractor extractor = new ModelExtractor(assetCfg);
 		if (assetClassLoader != null) {
 			extractor.assetManager.addClassLoader(assetClassLoader);
+		}
+		FileCollection acp = getAssetClassPath();
+		if (acp != null && !acp.isEmpty()) {
+
+			Set<File> files = acp.getFiles();
+			for(File f: files) {
+				System.out.println("add file :" + f);
+				if (f.isDirectory()) {
+					extractor.assetManager.registerLocator(f.getAbsolutePath(), FileLocator.class);
+				} else if (f.getName().endsWith(".jar") || f.getName().endsWith(".zip")) {
+					extractor.assetManager.registerLocator(f.getAbsolutePath(), ZipLocator.class);
+				} else {
+					extractor.assetManager.registerLocator(f.toURI().toURL().toExternalForm(), UrlLocator.class);
+				}
+			}
+
+//			URL[] urls = new URL[files.size()];
+//			int i = 0;
+//			for(File f: files) {
+//				urls[i] = f.toURI().toURL();
+//				System.out.println("add url :" + i + " .. " + urls[i]);
+//				i++;
+//			}
+//			extractor.assetManager.addClassLoader(new URLClassLoader(urls));
 		}
 		extractor.addAssetDirs(getAssetDirs());
 		Transform t = new Transform();
