@@ -1,2 +1,13 @@
 include 'teapot', 'crytek_sponza', 'crytek_sponza2', 'dabrovic_sponza', 'buddha', 'lost_empire'
-//include 'teapot'
+
+// def subProjectDirs = rootDir.listFiles(new FileFilter() {
+//   public boolean accept(File file) {
+//     return (
+//       file.isDirectory()
+//       && !["build", "buildsrc", "tmp", ".gradle"].contains(file.name.toLowerCase(Locale.US))
+//       //&& new File(file, 'build.gradle').exists()
+//       );
+//   }
+// });
+// subProjectDirs.each { File dir ->  include dir.name }
+//
