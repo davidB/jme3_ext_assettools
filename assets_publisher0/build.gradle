@@ -1,39 +1,52 @@
 buildscript {
 	repositories {
-		jcenter()
 		mavenLocal()
-	}
-	dependencies {
-		classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:0.6'
-		classpath 'net.alchim31.gradle:gradle-jme3_ext_assettools-plugin:0.1.0'
-		classpath 'de.undercouch:gradle-download-task:1.1'
-	}
-}
-
-apply plugin: 'eclipse'
-
-group = "net.alchim31.assets"
-version = "0.1.0"
-def description = 'Assets packaged for jme3 from various places'
-
-
-
-def v_jme = '3.0.10'
-
-subprojects {
-	apply plugin: 'download-task'
-	apply plugin: 'java'
-	apply plugin: 'maven-publish'
-	apply plugin: 'com.jfrog.bintray'
-
-	group = "net.alchim31.assets"
-	version = "0.1.0"
-
-	repositories {
 		jcenter()
 		maven { url "http://updates.jmonkeyengine.org/maven/"}
 		maven { url "http://dl.bintray.com/davidb/jme3stuff" }
+	}
+	dependencies {
+		// to download some remote assets
+		classpath 'de.undercouch:gradle-download-task:1.1'
+		// for asset view/convertion
+		classpath 'net.alchim31.gradle:gradle-jme3_ext_assettools-plugin:0.1.0'
+		classpath "com.jme3:jme3-jbullet:${v_jme}" // some j3o require RigidBodyControl
+		// to upload assets on bintray
+		classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:0.6'
+	}
+}
+
+//------------------------------------------------------------------------------
+// Global
+// content of this section could be placed in an other script
+//------------------------------------------------------------------------------
+
+allprojects {
+	group = "net.alchim31.assets"
+	version = "0.1.0"
+	def description = 'Assets packaged for jme3 from various places'
+}
+
+
+subprojects {
+	apply plugin: 'download-task'
+	apply plugin: 'java' // assets are managed like java resource + code
+	apply plugin: 'maven-publish'
+	apply plugin: 'com.jfrog.bintray'
+
+	// Define a new property
+	ext.modelName = project.name
+	ext.archivePath = ''
+	ext.modelPathInArchive = "${modelName}.obj"
+	ext.modelPathInAssetCP = null
+	ext.unarchiveDir = "${buildDir}/unarchive/"
+	ext.modelScale = 1.0
+
+	repositories {
 		mavenLocal()
+		jcenter()
+		maven { url "http://updates.jmonkeyengine.org/maven/"}
+		maven { url "http://dl.bintray.com/davidb/jme3stuff" }
 	}
 
 	configurations {
@@ -42,14 +55,6 @@ subprojects {
 	dependencies {
 		compile "com.jme3:jme3-core:${v_jme}"
 	}
-
-  // Define a new property
-  ext.modelName = project.name
-	ext.archivePath = ''
-	ext.modelPathInArchive = "${modelName}.obj"
-	ext.modelPathInAssetCP = null
-	ext.unarchiveDir = "${buildDir}/unarchive/"
-	ext.modelScale = 1.0
 
 	task unarchive(type: Copy) {
 		from {zipTree(archivePath)}
@@ -212,8 +217,11 @@ subprojects {
 		}
 	}
 }
+//------------------------------------------------------------------------------
+// Per project
+// content of each subproject could be placed into ${subproject}/build.gradle
+//------------------------------------------------------------------------------
 
-// Inject special case configuration into a particular project
 // project(':teapot') {
 // 	bintray.pkg {
 // 		desc = '''Martin Newell modeled a teapot using bicubic Bezier patches in 1975 as part of an entire tea set. It first appeared in his Ph.D. dissertation. Jim Blinn scaled the teapot horizontally by 1.3x to cancel the effect of the rectangular pixels on their display. The original had no bottom; most variations add one. Kenzie Lamar at Vicarious Visions created this version from the default teapot model in 3D Studio Max. He resized the top so that it fits snugly, created a shell and welded the spout and handle so that the teapot is a manifold without boundary, and created a unique and consistent-resolution texture parameterization for the entire model.'''
@@ -258,9 +266,7 @@ project(':teapot') {
   dependencies {
 		assets "com.jme3:jme3-testdata:3.1.0-snapshot-github"
 	}
-	task prepare {
-		dependsOn('convert', 'view','pack')
-	}
+	assemble.dependsOn('convert', 'view','pack')
 }
 
 project(':crytek_sponza') {
@@ -272,12 +278,12 @@ project(':crytek_sponza') {
   ext.modelScale = 0.01
 
 	task downloadFile(type: de.undercouch.gradle.tasks.download.Download) {
+		onlyIfNewer true
 		src 'http://graphics.cs.williams.edu/data/meshes/crytek-sponza.zip'
 		dest buildDir
 	}
-	task prepare {
-		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
-	}
+	unarchive.mustRunAfter(downloadFile)
+	assemble.dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
 }
 
 project(':crytek_sponza2') {
@@ -290,9 +296,7 @@ project(':crytek_sponza2') {
 	ext.archivePath = "tmp/sponza2.zip"
 	ext.modelPathInArchive = "crytek/sponza.obj"
 	ext.modelScale = 0.01
-	task prepare {
-		dependsOn('unarchive','convert', 'view','pack')
-	}
+	assemble.dependsOn('unarchive','convert', 'view','pack')
 }
 
 project(':dabrovic_sponza'){
@@ -304,12 +308,12 @@ project(':dabrovic_sponza'){
 	ext.modelPathInArchive = "sponza.obj"
 	//ext.modelScale = 0.1
 	task downloadFile(type: de.undercouch.gradle.tasks.download.Download) {
+		onlyIfNewer true
 		src 'http://graphics.cs.williams.edu/data/meshes/dabrovic-sponza.zip'
 		dest buildDir
 	}
-	task prepare {
-		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
-	}
+	unarchive.mustRunAfter(downloadFile)
+	assemble.dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
 }
 
 project(':lost_empire'){
@@ -324,9 +328,8 @@ project(':lost_empire'){
 		src 'http://graphics.cs.williams.edu/data/meshes/lost-empire.zip'
 		dest buildDir
 	}
-	task prepare {
-		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
-	}
+	unarchive.mustRunAfter(downloadFile)
+	assemble.dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
 }
 
 project(':buddha'){
@@ -338,10 +341,26 @@ project(':buddha'){
 	ext.modelPathInArchive = "buddha.obj"
 	//ext.modelScale = 0.1
 	task downloadFile(type: de.undercouch.gradle.tasks.download.Download) {
+		onlyIfNewer true
 		src 'http://graphics.cs.williams.edu/data/meshes/buddha.zip'
 		dest buildDir
 	}
-	task prepare {
-		dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
+	unarchive.mustRunAfter(downloadFile)
+	assemble.dependsOn('downloadFile', 'unarchive','convert', 'view','pack')
+}
+
+project(':broken_cube') {
+	version = "0.1.0"
+	bintray.pkg {
+		desc = '''A broken cube made by  Hannes Nevalainen (kwando) for DMonkey demo, adapted to use Lighting.j3md .'''
+		websiteUrl = 'https://github.com/kwando/dmonkey/tree/dev/assets/Models'
+		labels = ['jme3', 'assets', 'model_3D']
 	}
+	ext.modelPathInAssetCP = "Models/brokenCube_1.j3o"
+	//configurations.assets += project.fileTree("../../../dmonkey/assets")
+	dependencies {
+		assets files('../../../dmonkey/assets')
+		compile "com.jme3:jme3-jbullet:${v_jme}"
+	}
+	assemble.dependsOn('convert', 'view','pack')
 }
