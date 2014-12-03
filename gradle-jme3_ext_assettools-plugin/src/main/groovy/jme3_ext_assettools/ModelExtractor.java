@@ -2,6 +2,7 @@ package jme3_ext_assettools;
 
 import java.io.File;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -10,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.tools.ant.util.ReaderInputStream;
 import org.gradle.api.file.FileCollection;
 
 import com.jme3.asset.AssetInfo;
@@ -18,7 +20,9 @@ import com.jme3.asset.MaterialKey;
 import com.jme3.asset.TextureKey;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.export.binary.BinaryExporter;
+import com.jme3.material.MatParam;
 import com.jme3.material.Material;
+import com.jme3.material.RenderState;
 import com.jme3.math.Transform;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.plugins.OBJLoader;
@@ -116,7 +120,7 @@ public class ModelExtractor {
 					//System.err.println("not found : " + ksrc);
 				} else {
 					try (InputStream in = ai.openStream()) {
-						Files.copy(ai.openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+						Files.copy(in, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
 					}
 				}
 			}
@@ -140,7 +144,11 @@ public class ModelExtractor {
 				File f = new File(froot, k.getName());
 				if (!f.exists()) {
 					f.getParentFile().mkdirs();
-					Files.copy(assetManager.locateAsset(k).openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					//Files.copy(assetManager.locateAsset(k).openStream(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					// rewrite the j3m, because path of texture is different
+					try (InputStream in = new ReaderInputStream(new StringReader(materialToJ3M(t)), "UTF-8")) {
+						Files.copy(in, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					}
 				}
 				b.add(f);
 			}
@@ -149,6 +157,31 @@ public class ModelExtractor {
 		exporter.save(root, f0);
 		b.add(f0);
 		return b;
+	}
+
+	static String materialToJ3M(Material m) {
+		String out = String.format("Material %s : %s {\n", m.getName(), m.getMaterialDef().getAssetName());
+		out += "\tMaterialParameters {\n";
+		for(MatParam p : m.getParams()) {
+			out += String.format("\t\t%s : %s\n", p.getName(), p.getValueAsString());
+		}
+		out += "\t}\n";
+		RenderState s = m.getAdditionalRenderState();
+		if (s != null) {
+			out += "\tAdditionalRenderState {\n";
+			if (s.isApplyAlphaFallOff()) out += String.format("\t\tAlphaTestFalloff %.3d\n", s.getAlphaFallOff());
+			if (s.isApplyBlendMode()) out += String.format("\t\tBlend %s\n", s.getBlendMode().name());
+			if (s.isApplyColorWrite()) out += String.format("\t\tColorWrite %s\n", s.isColorWrite());
+			if (s.isApplyCullMode()) out += String.format("\t\tFaceCull %s\n", s.getFaceCullMode().name());
+			if (s.isApplyDepthTest()) out += String.format("\t\tDepthTest %s\n", s.isDepthTest());
+			if (s.isApplyDepthWrite()) out += String.format("\t\tDepthWrite %s\n", s.isDepthWrite());
+			if (s.isApplyPointSprite()) out += String.format("\t\tPointSprite %s\n", s.isPointSprite());
+			if (s.isApplyPolyOffset()) out += String.format("\t\tPolyOffset %.3d %.3d\n", s.getPolyOffsetFactor(), s.getPolyOffsetUnits());
+			if (s.isApplyWireFrame()) out += String.format("\t\tWireframe %s\n", s.isWireframe());
+			out += "\t}\n";
+		}
+		out += "}\n";
+		return out;
 	}
 }
 
