@@ -55,21 +55,21 @@ public class ModelExtractorTask extends DefaultTask {
 	public String getRpath() {
 		if (rpath == null) return null;
 		Object v = (rpath instanceof Closure) ? ((Closure<?>)rpath).call() : rpath;
-		return v.toString();
+		return (v == null)? null : v.toString();
 	}
 
 	@Setter Object prefixTexture = true;
 	public boolean getPrefixTexture() {
 		if (prefixTexture == null) return true;
 		Object v = (prefixTexture instanceof Closure) ? ((Closure<?>)prefixTexture).call() : prefixTexture;
-		return Boolean.valueOf(v.toString());
+		return (v == null)? true : Boolean.valueOf(v.toString());
 	}
 
 	@Setter Object scale = 1.0f;
 	public float getScale() {
 		if (scale == null) return 1.0f;
 		Object v = (scale instanceof Closure) ? ((Closure<?>)scale).call() : scale;
-		return Float.valueOf(v.toString());
+		return (v == null)? 1.0f : Float.valueOf(v.toString());
 	}
 
 	//@OutputDirectory
@@ -85,7 +85,7 @@ public class ModelExtractorTask extends DefaultTask {
 	public String getOutBaseName() {
 		if (outBaseName == null) return null;
 		Object v = (outBaseName instanceof Closure) ? ((Closure<?>)outBaseName).call() : outBaseName;
-		return v.toString();
+		return (v == null)?null : v.toString();
 	}
 
 	@OutputFiles
