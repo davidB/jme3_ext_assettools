@@ -15,7 +15,7 @@ apply plugin: 'com.jfrog.bintray'
 
 group = "net.alchim31.gradle"
 version = "0.1.0"
-def description = 'A gradle plugin to extract/isolate asset to generate files ready to be bundled/jared and used by jmonkeyengine'
+def description = 'A gradle plugin to extract/isolate j3o to generate files ready to be bundled/jared and used by jmonkeyengine'
 
 repositories {
 	jcenter()
@@ -94,9 +94,9 @@ bintray {
 		repo = 'jme3stuff'
 		name = project.name
 		desc = description
-		websiteUrl = "https://github.com/davidB/${project.name}"
-		issueTrackerUrl = "https://github.com/davidB/${project.name}/issues"
-		vcsUrl = "https://github.com/davidB/${project.name}.git"
+		websiteUrl = "https://github.com/davidB/jme3_ext_assettools"
+		issueTrackerUrl = "https://github.com/davidB/jme3_ext_assettools/issues"
+		vcsUrl = "https://github.com/davidB/jme3_ext_assettools.git"
 		licenses = ['CC0-1.0']
 		labels = ['gradle', 'jme3', 'tools']
 		publicDownloadNumbers = true
