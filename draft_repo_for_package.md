@@ -14,10 +14,10 @@ The following solution can be extended to support SDK plugin ([*.nbm](http://wik
 (Proposal)
 
 * Files :
-  * required : <name>-<version>.jar (eg: mystuff-0.1.0.jar)
-  * required : <name>-<version>.pom (eg: mystuff-0.1.0.pom)
-  * optional : <name>-<version>-sources.jar (eg: mystuff-0.1.0-sources.jar)
-  * optional : <name>-<version>-javadoc.jar (eg: mystuff-0.1.0-javadoc.jar)
+  * required : {name}-{version}.jar (eg: mystuff-0.1.0.jar)
+  * required : {name}-{version}.pom (eg: mystuff-0.1.0.pom)
+  * optional : {name}-{version}-sources.jar (eg: mystuff-0.1.0-sources.jar)
+  * optional : {name}-{version}-javadoc.jar (eg: mystuff-0.1.0-javadoc.jar)
 * Jar layouts
 * Pom metadata
   * it's a xml file (full description)
