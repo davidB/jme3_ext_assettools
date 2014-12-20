@@ -11,6 +11,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
 import com.jme3.app.Application;
+import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.AbstractAppState;
 
 public class AppState4RemoteCommand extends AbstractAppState {
@@ -34,6 +35,7 @@ public class AppState4RemoteCommand extends AbstractAppState {
 			public void initChannel(SocketChannel ch) throws Exception {
 				ServerHandler4Capture c = new ServerHandler4Capture();
 				c.capturer = capture;
+				c.jme = (SimpleApplication)app;
 				ch.pipeline().addLast(
 					new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 1, 4)
 					,c

@@ -44,7 +44,7 @@ dependencies {
 	compile "org.slf4j:slf4j-api:${v_slf4j}"
 	compile "org.slf4j:jul-to-slf4j:${v_slf4j}"
 	compile 'io.netty:netty-handler:4.0.24.Final'
-	compile 'org.msgpack:msgpack:0.6+'
+	compile 'net.alchim31.pgex:pgex:0+'
 	provided 'org.projectlombok:lombok:1.14.2'
 	provided "com.jme3:jme3-core:${v_jme3}"
 	provided "com.jme3:jme3-desktop:${v_jme3}"
