@@ -10,7 +10,8 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
-import com.jme3.app.Application;
+import java.util.function.Consumer;
+
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.AbstractAppState;
 
@@ -20,8 +21,9 @@ public class AppState4RemoteCommand extends AbstractAppState {
 	private ChannelFuture f;
 	EventLoopGroup bossGroup;
 	EventLoopGroup workerGroup;
-	final SceneProcessorCopyToBGRA capture = new SceneProcessorCopyToBGRA();
-	private Application app;
+	private SimpleApplication app;
+
+	public final RemoteCtx remoteCtx = new RemoteCtx();
 
 	void start() throws Exception {
 		bossGroup = new NioEventLoopGroup();
@@ -34,8 +36,7 @@ public class AppState4RemoteCommand extends AbstractAppState {
 			@Override
 			public void initChannel(SocketChannel ch) throws Exception {
 				ServerHandler4Capture c = new ServerHandler4Capture();
-				c.capturer = capture;
-				c.jme = (SimpleApplication)app;
+				c.enqueue = AppState4RemoteCommand.this::enqueue;
 				ch.pipeline().addLast(
 					new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 1, 4)
 					,c
@@ -56,11 +57,16 @@ public class AppState4RemoteCommand extends AbstractAppState {
 		if (f != null) f.channel().close().sync();
 	}
 
-	public void initialize(com.jme3.app.state.AppStateManager stateManager, com.jme3.app.Application app) {
+	public void enqueue(Consumer<RemoteCtx> f) {
+		app.enqueue(() -> { f.accept(remoteCtx); return null;});
+	}
+
+	public void initialize(com.jme3.app.state.AppStateManager stateManager0, com.jme3.app.Application app0) {
 		try {
-			this.app = app;
+			app = (SimpleApplication)app0;
 			start();
-			app.getViewPort().addProcessor(capture);
+			app.getViewPort().addProcessor(remoteCtx.view);
+			app.getRootNode().attachChild(remoteCtx.root);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -68,7 +74,8 @@ public class AppState4RemoteCommand extends AbstractAppState {
 
 	public void cleanup() {
 		try {
-			app.getViewPort().removeProcessor(capture);
+			app.getRootNode().detachChild(remoteCtx.root);
+			app.getViewPort().removeProcessor(remoteCtx.view);
 			stop();
 		} catch (Exception e) {
 			e.printStackTrace();

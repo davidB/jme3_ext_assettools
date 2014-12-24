@@ -49,6 +49,7 @@ dependencies {
 	provided "com.jme3:jme3-core:${v_jme3}"
 	provided "com.jme3:jme3-desktop:${v_jme3}"
 	provided "com.jme3:jme3-lwjgl:${v_jme3}"
+	testCompile 'junit:junit:4.12'
 }
 
 task sourcesJar(type: Jar) {

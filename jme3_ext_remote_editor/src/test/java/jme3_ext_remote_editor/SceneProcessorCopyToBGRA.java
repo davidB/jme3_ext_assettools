@@ -1,10 +1,10 @@
 package jme3_ext_remote_editor;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import com.jme3.post.SceneProcessor;
@@ -18,8 +18,8 @@ import com.jme3.util.BufferUtils;
 //http://hub.jmonkeyengine.org/forum/topic/offscreen-rendering-problem/
 public class SceneProcessorCopyToBGRA implements SceneProcessor {
 
-	private RenderManager rm;
-	private ViewPort vp;
+	@Getter private RenderManager renderManager;
+	@Getter private ViewPort viewPort;
 
 	private TransfertImage timage;
 	public final AtomicReference<ReshapeInfo> askReshape = new AtomicReference<>();
@@ -37,15 +37,15 @@ public class SceneProcessorCopyToBGRA implements SceneProcessor {
 
 	@Override
 	public void initialize(RenderManager rm, ViewPort vp) {
-		this.rm = rm;
-		this.vp = vp;
+		this.renderManager = rm;
+		this.viewPort = vp;
 	}
 
 	private TransfertImage reshapeInThread(int width0, int height0, boolean fixAspect) {
 		TransfertImage ti = new TransfertImage(width0, height0);
 
-		rm.getRenderer().setMainFrameBufferOverride(ti.fb);
-		rm.notifyReshape(ti.width, ti.height);
+		renderManager.getRenderer().setMainFrameBufferOverride(ti.fb);
+		renderManager.notifyReshape(ti.width, ti.height);
 
 		//		for (ViewPort vp : viewPorts){
 		//			vp.getCamera().resize(ti.width, ti.height, fixAspect);
@@ -78,7 +78,7 @@ public class SceneProcessorCopyToBGRA implements SceneProcessor {
 			//		if (out != timage.fb){
 			//			throw new IllegalStateException("Why did you change the output framebuffer? " + out + " != " + timage.fb);
 			//		}
-			if (timage.copyFrameBufferToBGRA(rm, notify)) {
+			if (timage.copyFrameBufferToBGRA(renderManager, notify)) {
 				notify = null;
 			};
 		}

@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import jme3_ext_remote_editor.AppState4RemoteCommand;
 
+import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
@@ -44,6 +45,7 @@ public class DemoRendererForBlender {
 		//Setup Camera
 		app.enqueue(() -> {
 			app.getFlyByCamera().setEnabled(false);
+			app.getStateManager().detach(app.getStateManager().getState(FlyCamAppState.class));
 			app.getInputManager().setCursorVisible(true);
 			return null;
 		});

@@ -12,7 +12,9 @@ public class Pgex {
 	}
 
 	static Quaternion cnv(pgex.Math.Quaternion src, Quaternion dst) {
+		System.out.printf("quat before: %s : w:%s x:%s y:%s z:%s\n", src.toString(), src.getW(),  src.getX(),  src.getY(),  src.getZ());
 		dst.set(src.getX(), src.getY(), src.getZ(), src.getW());
+		System.out.printf("quat after: %s : w:%s x:%s y:%s z:%s\n", dst.toString(), dst.getW(),  src.getX(),  src.getY(),  src.getZ());
 		return dst;
 	}
 
