@@ -14,6 +14,8 @@ import java.util.function.Consumer;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.AbstractAppState;
+import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 
 public class AppState4RemoteCommand extends AbstractAppState {
 
@@ -22,6 +24,7 @@ public class AppState4RemoteCommand extends AbstractAppState {
 	EventLoopGroup bossGroup;
 	EventLoopGroup workerGroup;
 	private SimpleApplication app;
+	Pgex pgex;
 
 	public final RemoteCtx remoteCtx = new RemoteCtx();
 
@@ -35,8 +38,10 @@ public class AppState4RemoteCommand extends AbstractAppState {
 		.childHandler(new ChannelInitializer<SocketChannel>() { // (4)
 			@Override
 			public void initChannel(SocketChannel ch) throws Exception {
-				ServerHandler4Capture c = new ServerHandler4Capture();
-				c.enqueue = AppState4RemoteCommand.this::enqueue;
+				ServerHandler4Capture c = new ServerHandler4Capture(
+					AppState4RemoteCommand.this::enqueue
+					, AppState4RemoteCommand.this.pgex
+				);
 				ch.pipeline().addLast(
 					new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 1, 4)
 					,c
@@ -67,6 +72,9 @@ public class AppState4RemoteCommand extends AbstractAppState {
 			start();
 			app.getViewPort().addProcessor(remoteCtx.view);
 			app.getRootNode().attachChild(remoteCtx.root);
+			Material defaultMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+			defaultMaterial.setColor("Color", ColorRGBA.Gray);
+			pgex = new Pgex(defaultMaterial);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
