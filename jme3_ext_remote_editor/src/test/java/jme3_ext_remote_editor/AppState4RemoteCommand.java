@@ -10,8 +10,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
-import java.util.function.Consumer;
-
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.material.Material;
@@ -26,8 +24,6 @@ public class AppState4RemoteCommand extends AbstractAppState {
 	private SimpleApplication app;
 	Pgex pgex;
 
-	public final RemoteCtx remoteCtx = new RemoteCtx();
-
 	void start() throws Exception {
 		bossGroup = new NioEventLoopGroup();
 		workerGroup = new NioEventLoopGroup();
@@ -35,16 +31,16 @@ public class AppState4RemoteCommand extends AbstractAppState {
 		ServerBootstrap b = new ServerBootstrap();
 		b.group(bossGroup, workerGroup)
 		.channel(NioServerSocketChannel.class)
-		.childHandler(new ChannelInitializer<SocketChannel>() { // (4)
+		.childHandler(new ChannelInitializer<SocketChannel>() {
 			@Override
 			public void initChannel(SocketChannel ch) throws Exception {
-				ServerHandler4Capture c = new ServerHandler4Capture(
-					AppState4RemoteCommand.this::enqueue
+				RemoteHandler rh = new RemoteHandler(
+					AppState4RemoteCommand.this.app
 					, AppState4RemoteCommand.this.pgex
 				);
 				ch.pipeline().addLast(
 					new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 1, 4)
-					,c
+					,new ServerHandler4Capture(rh)
 				);
 			}
 		})
@@ -62,16 +58,10 @@ public class AppState4RemoteCommand extends AbstractAppState {
 		if (f != null) f.channel().close().sync();
 	}
 
-	public void enqueue(Consumer<RemoteCtx> f) {
-		app.enqueue(() -> { f.accept(remoteCtx); return null;});
-	}
-
 	public void initialize(com.jme3.app.state.AppStateManager stateManager0, com.jme3.app.Application app0) {
 		try {
 			app = (SimpleApplication)app0;
 			start();
-			app.getViewPort().addProcessor(remoteCtx.view);
-			app.getRootNode().attachChild(remoteCtx.root);
 			Material defaultMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
 			defaultMaterial.setColor("Color", ColorRGBA.Gray);
 			pgex = new Pgex(defaultMaterial);
@@ -82,8 +72,6 @@ public class AppState4RemoteCommand extends AbstractAppState {
 
 	public void cleanup() {
 		try {
-			app.getRootNode().detachChild(remoteCtx.root);
-			app.getViewPort().removeProcessor(remoteCtx.view);
 			stop();
 		} catch (Exception e) {
 			e.printStackTrace();
