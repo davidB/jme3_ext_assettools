@@ -4,7 +4,6 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
-import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
@@ -29,9 +28,7 @@ public class Pgex {
 	}
 
 	public Quaternion cnv(pgex.Datas.Quaternion src, Quaternion dst) {
-		System.out.printf("quat before: %s : w:%s x:%s y:%s z:%s\n", src.toString(), src.getW(),  src.getX(),  src.getY(),  src.getZ());
 		dst.set(src.getX(), src.getY(), src.getZ(), src.getW());
-		System.out.printf("quat after: %s : w:%s x:%s y:%s z:%s\n", dst.toString(), dst.getW(),  src.getX(),  src.getY(),  src.getZ());
 		return dst;
 	}
 
