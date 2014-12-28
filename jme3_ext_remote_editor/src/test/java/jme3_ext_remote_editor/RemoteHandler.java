@@ -16,7 +16,6 @@ import pgex.Datas.Data;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.light.LightList;
-import com.jme3.math.FastMath;
 import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
 import com.jme3.renderer.ViewPort;
