@@ -16,7 +16,10 @@ import pgex.Datas.Data;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.light.LightList;
+import com.jme3.math.FastMath;
+import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.CameraNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -36,7 +39,8 @@ public class RemoteHandler {
 	public final Pgex pgex;
 
 	public void enable() throws Exception {
-		app.getViewPort().addProcessor(remoteCtx.view);
+		ViewPort vp = app.getRenderManager().createPostView("remoteHandler_" + System.currentTimeMillis(), app.getCamera());
+		vp.addProcessor(remoteCtx.view);
 		app.getRootNode().attachChild(remoteCtx.root);
 		System.out.println("enable");
 	}
@@ -47,7 +51,7 @@ public class RemoteHandler {
 		LightList ll = remoteCtx.root.getLocalLightList();
 		for(int i = ll.size() - 1; i > -1; i--) ll.remove(i);
 		app.getRootNode().detachChild(remoteCtx.root);
-		app.getViewPort().removeProcessor(remoteCtx.view);
+		remoteCtx.view.getViewPort().removeProcessor(remoteCtx.view);
 		System.out.println("disable");
 	}
 
@@ -125,12 +129,11 @@ public class RemoteHandler {
 			Quaternion rot = pgex.cnv(cmd.getRotation(), cam.getLocalRotation());
 			cam.setLocalRotation(rot.clone());
 			cam.setLocalTranslation(pgex.cnv(cmd.getLocation(), cam.getLocalTranslation()));
-			cam.setCamera(rc
-					.view
-					.getViewPort()
-					.getCamera()
-			);
-			cam.getCamera().setProjectionMatrix(pgex.cnv(cmd.getProjection(), cam.getCamera().getProjectionMatrix()));
+			cam.setCamera(rc.view.getViewPort().getCamera());
+			if (cmd.hasNear()) cam.getCamera().setFrustumNear(cmd.getNear());
+			if (cmd.hasFar()) cam.getCamera().setFrustumFar(cmd.getFar());
+			if (cmd.hasProjection()) cam.getCamera().setProjectionMatrix(pgex.cnv(cmd.getProjection(), new Matrix4f()));
+			cam.getCamera().update();
 			cam.setEnabled(true);
 		});
 	}

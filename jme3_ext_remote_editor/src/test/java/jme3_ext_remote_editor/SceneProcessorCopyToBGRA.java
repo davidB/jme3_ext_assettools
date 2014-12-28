@@ -43,7 +43,7 @@ public class SceneProcessorCopyToBGRA implements SceneProcessor {
 
 	private TransfertImage reshapeInThread(int width0, int height0, boolean fixAspect) {
 		TransfertImage ti = new TransfertImage(width0, height0);
-
+		viewPort.getCamera().resize(width0, height0, fixAspect);
 		renderManager.getRenderer().setMainFrameBufferOverride(ti.fb);
 		renderManager.notifyReshape(ti.width, ti.height);
 
