@@ -116,7 +116,7 @@ public class RemoteHandler {
 
 	void setData(ChannelHandlerContext ctx, Data data) {
 		enqueue((rc)-> {
-			pgex.merge(data, rc.root);
+			pgex.merge(data, rc.root, rc.components);
 			System.out.println("setData : dump rc.root");
 			dump(rc.root, "");
 		});
