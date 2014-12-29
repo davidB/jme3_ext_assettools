@@ -128,7 +128,12 @@ public class RemoteHandler {
 			Quaternion rot = pgex.cnv(cmd.getRotation(), cam.getLocalRotation());
 			cam.setLocalRotation(rot.clone());
 			cam.setLocalTranslation(pgex.cnv(cmd.getLocation(), cam.getLocalTranslation()));
-			cam.setCamera(rc.view.getViewPort().getCamera());
+			try {
+				cam.setCamera(rc.view.getViewPort().getCamera());
+			} catch(Exception exc) {
+				//FIXME rc.view.getViewPort().getCamera() should not raise NPE
+				exc.printStackTrace();
+			}
 			if (cmd.hasNear()) cam.getCamera().setFrustumNear(cmd.getNear());
 			if (cmd.hasFar()) cam.getCamera().setFrustumFar(cmd.getFar());
 			if (cmd.hasProjection()) cam.getCamera().setProjectionMatrix(pgex.cnv(cmd.getProjection(), new Matrix4f()));
