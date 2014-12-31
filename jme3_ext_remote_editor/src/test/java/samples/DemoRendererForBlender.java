@@ -3,18 +3,25 @@ package samples;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 import jme3_ext_remote_editor.AppState4RemoteCommand;
+import jme3_ext_spatialexplorer.AppStateSpatialExplorer;
+
 
 import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.debug.Arrow;
 import com.jme3.scene.debug.Grid;
 import com.jme3.system.AppSettings;
@@ -55,6 +62,35 @@ public class DemoRendererForBlender {
 		});
 		app.enqueue(() -> {
 			app.getStateManager().attach(new AppState4RemoteCommand());
+			AppStateSpatialExplorer se = new AppStateSpatialExplorer();
+
+			Spatial axis = app.getRootNode().getChild("axis");
+			AbstractControl axisSync = new AbstractControl() {
+				@Override
+				protected void controlUpdate(float tpf) {
+					if (axis == getSpatial()) {
+						axis.setLocalTransform(Transform.IDENTITY.clone());
+					} else {
+						axis.setLocalTransform(getSpatial().getWorldTransform());
+					}
+				}
+
+				@Override
+				protected void controlRender(RenderManager rm, ViewPort vp) {
+				}
+			};
+			se.spatialExplorer.selection.addListener((observable, oldValue, newValue) -> {
+				app.enqueue(()->{
+					if (oldValue != null) {
+						oldValue.removeControl(axisSync);
+					}
+					if (newValue != null) {
+						newValue.addControl(axisSync);
+					}
+					return null;
+				});
+			});
+			app.getStateManager().attach(se);
 			return null;
 		});
 	}
