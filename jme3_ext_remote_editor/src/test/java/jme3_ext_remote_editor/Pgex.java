@@ -16,13 +16,13 @@ import com.jme3.material.MatParam;
 import com.jme3.material.Material;
 import com.jme3.material.MaterialDef;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.math.Vector4f;
 import com.jme3.scene.Geometry;
-import com.jme3.scene.LightNode;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Mesh.Mode;
 import com.jme3.scene.Node;
@@ -181,7 +181,7 @@ public class Pgex {
 		for(pgex.Datas.Light srcl : src.getLightsList()) {
 			//TODO manage parent hierarchy
 			String id = srcl.getId();
-			LightNode dst = (LightNode) components.get(id);
+			PgexLightControl dst = (PgexLightControl) components.get(id);
 			if (dst == null) {
 				Light l0 = null;
 				switch(srcl.getKind()) {
@@ -190,13 +190,14 @@ public class Pgex {
 					break;
 				case directional: {
 					DirectionalLight l = new DirectionalLight();
-					l.setDirection(Vector3f.UNIT_Z.clone());
 					l0 = l;
 					break;
 				}
 				case spot: {
 					SpotLight l = new SpotLight();
-					l.setDirection(Vector3f.UNIT_Z.clone());
+					l.setSpotRange(1000);
+					l.setSpotInnerAngle(5f * FastMath.DEG_TO_RAD);
+					l.setSpotOuterAngle(10f * FastMath.DEG_TO_RAD);
 					l0 = l;
 					break;
 				}
@@ -204,40 +205,70 @@ public class Pgex {
 					l0 = new PointLight();
 					break;
 				}
-				dst = new LightNode(id, l0);
-				dst.getLight().setName(id);
-				root.addLight(dst.getLight());
-				root.attachChild(dst);
+				l0.setColor(ColorRGBA.White.mult(2));
+				l0.setName(id);
+
+				dst = new PgexLightControl();
+				dst.light = l0;
 				components.put(id, dst);
+
+				root.addLight(l0);
+				root.addControl(dst);
 			}
 			if (srcl.hasColor()) {
-				dst.getLight().setColor(cnv(srcl.getColor(), new ColorRGBA()).mult(srcl.getIntensity()));
+				dst.light.setColor(cnv(srcl.getColor(), new ColorRGBA()).mult(srcl.getIntensity()));
 			}
 			//TODO manage attenuation
 			switch(srcl.getKind()) {
-			case directional: {
-				DirectionalLight l = (DirectionalLight)dst.getLight();
-				if (srcl.hasDirection()) {
-					l.setDirection(cnv(srcl.getDirection(), l.getDirection()));
-				}
-			}
 			case spot: {
-				SpotLight l = (SpotLight)dst.getLight();
-				if (srcl.hasAttenuation() && srcl.getAttenuation().hasAngle()) {
-					l.setSpotOuterAngle(srcl.getAttenuation().getAngle());
+				SpotLight l = (SpotLight)dst.light;
+				if (srcl.hasSpotAngle()) {
+					float max = srcl.getSpotAngle().getMax();
+					switch(srcl.getSpotAngle().getCurveCase()) {
+						case CURVE_NOT_SET: {
+							l.setSpotOuterAngle(max);
+							l.setSpotInnerAngle(max);
+							break;
+						}
+						case LINEAR: {
+							l.setSpotOuterAngle(max * srcl.getSpotAngle().getLinear().getEnd());
+							l.setSpotInnerAngle(max * srcl.getSpotAngle().getLinear().getBegin());
+							break;
+						}
+						default: {
+							l.setSpotOuterAngle(max);
+							l.setSpotInnerAngle(max);
+							System.out.printf("doesn't support curve like %s for spot_angle\n", srcl.getSpotAngle().getCurveCase());
+						}
+					}
+
 				}
-				if (srcl.hasDirection()) {
-					l.setDirection(cnv(srcl.getDirection(), l.getDirection()));
+				if (srcl.hasRadialDistance()) {
+					l.setSpotRange(srcl.getRadialDistance().getMax());
 				}
 				break;
 			}
 			case point: {
-				PointLight l = (PointLight)dst.getLight();
-				if (srcl.hasAttenuation() && srcl.getAttenuation().hasDistance() && srcl.getAttenuation().getDistance()) {
-					if (srcl.getAttenuation().hasLinear()) {
-						l.setRadius(srcl.getAttenuation().getLinear().getEnd());
-					} else if (srcl.getAttenuation().hasSmooth()) {
-						l.setRadius(srcl.getAttenuation().getSmooth().getEnd());
+				PointLight l = (PointLight)dst.light;
+				if (srcl.hasRadialDistance()) {
+					float max = srcl.getRadialDistance().getMax();
+					switch(srcl.getRadialDistance().getCurveCase()) {
+					case CURVE_NOT_SET: {
+						l.setRadius(max);
+						break;
+					}
+					case LINEAR: {
+						l.setRadius(max * srcl.getSpotAngle().getLinear().getEnd());
+						break;
+					}
+					case SMOOTH: {
+						l.setRadius(max * srcl.getSpotAngle().getSmooth().getEnd());
+						break;
+					}
+					default: {
+						l.setRadius(max);
+						System.out.printf("doesn't support curve like %s for spot_angle\n", srcl.getSpotAngle().getCurveCase());
+					}
 					}
 				}
 				break;
@@ -318,10 +349,12 @@ public class Pgex {
 			}
 			if (op1 == null || op2 == null) return;
 			boolean done = false;
-			if (op1 instanceof Geometry) {
+			if (op1 instanceof Geometry) { // <--> pgex.Datas.Geometry
 				Geometry g1 = (Geometry) op1;
-				if (op2 instanceof LightNode) {
-					((LightNode)op2).attachChild(g1);
+				if (op2 instanceof PgexLightControl) {
+					PgexLightControl l2 = (PgexLightControl)op2;
+					l2.getSpatial().removeControl(l2);
+					g1.addControl(l2);
 					// TODO raise an alert, strange to link LightNode and Geometry
 					done = true;
 				} else if (op2 instanceof Material) {
@@ -335,13 +368,14 @@ public class Pgex {
 					//						g1.setUserData(p.getName(), getValue(p));
 					//					}
 				}
-			} else if (op1 instanceof LightNode) {
-				LightNode l1 = (LightNode)op1;
+			} else if (op1 instanceof PgexLightControl) { // <--> pgex.Datas.Light
+				PgexLightControl l1 = (PgexLightControl)op1;
 				if (op2 instanceof Node) {
-					((Node) op2).attachChild(l1);
+					l1.getSpatial().removeControl(l1);
+					((Node) op2).addControl(l1);
 					done = true;
 				}
-			} else if (op1 instanceof Material) {
+			} else if (op1 instanceof Material) { // <--> pgex.Datas.Material
 				Material m1 = (Material)op1;
 				if (op2 instanceof Node) {
 					((Node) op2).setMaterial(m1);
@@ -351,7 +385,7 @@ public class Pgex {
 					//						mergeToMaterial(p, m1);
 					//					}
 				}
-			} else if (op1 instanceof Node) {
+			} else if (op1 instanceof Node) { // <--> pgex.Datas.Material
 				// Node n1 = (Node) op1;
 				//				if (op2 instanceof pgex.Datas.CustomParams) {
 				//					for(pgex.Datas.CustomParam p : ((pgex.Datas.CustomParams)op2).getParamsList()) {
