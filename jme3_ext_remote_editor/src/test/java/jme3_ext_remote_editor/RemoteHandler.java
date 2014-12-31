@@ -4,7 +4,6 @@ import static io.netty.buffer.Unpooled.wrappedBuffer;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -18,10 +17,9 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.light.LightList;
 import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
+import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.CameraNode;
-import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
 
 
 /**
@@ -117,8 +115,6 @@ public class RemoteHandler {
 	void setData(ChannelHandlerContext ctx, Data data) {
 		enqueue((rc)-> {
 			pgex.merge(data, rc.root, rc.components);
-			System.out.println("setData : dump rc.root");
-			dump(rc.root, "");
 		});
 	}
 
@@ -129,30 +125,22 @@ public class RemoteHandler {
 			cam.setLocalRotation(rot.clone());
 			cam.setLocalTranslation(pgex.cnv(cmd.getLocation(), cam.getLocalTranslation()));
 			try {
-				cam.setCamera(rc.view.getViewPort().getCamera());
+				Camera cam0 = rc.view.getViewPort().getCamera();
+				cam.setCamera(cam0);
+				if (cmd.hasNear()) cam0.setFrustumNear(cmd.getNear());
+				if (cmd.hasFar()) cam0.setFrustumFar(cmd.getFar());
+				if (cmd.hasProjection()) cam0.setProjectionMatrix(pgex.cnv(cmd.getProjection(), new Matrix4f()));
+				cam0.update();
+				cam.setEnabled(true);
 			} catch(Exception exc) {
+				cam.setEnabled(false);
 				//FIXME rc.view.getViewPort().getCamera() should not raise NPE
 				exc.printStackTrace();
 			}
-			if (cmd.hasNear()) cam.getCamera().setFrustumNear(cmd.getNear());
-			if (cmd.hasFar()) cam.getCamera().setFrustumFar(cmd.getFar());
-			if (cmd.hasProjection()) cam.getCamera().setProjectionMatrix(pgex.cnv(cmd.getProjection(), new Matrix4f()));
-			cam.getCamera().update();
-			cam.setEnabled(true);
 		});
 	}
 
 	public void enqueue(Consumer<RemoteCtx> f) {
 		app.enqueue(() -> { f.accept(remoteCtx); return null;});
-	}
-
-	void dump(Node node, String prefix) {
-		List<Spatial> children = node.getChildren();
-		System.out.printf("%s %s (%d)\n", prefix, node.getName(), children.size());
-		prefix = (prefix.length() == 0)? " +--":  ("\t"+ prefix);
-		for (Spatial sp : children) {
-			if (sp instanceof Node) dump((Node) sp, prefix);
-			else System.out.printf("%s %s [%s]\n", prefix, sp.getName(), sp.getClass().getName());
-		}
 	}
 }
