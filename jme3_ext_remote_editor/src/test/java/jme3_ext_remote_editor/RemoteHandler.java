@@ -99,7 +99,7 @@ public class RemoteHandler {
 		try {
 			byte[] b = new byte[msg.readableBytes()];
 			msg.readBytes(b);
-			Cmd cmd0 = Cmd.parseFrom(b);
+			Cmd cmd0 = Cmd.parseFrom(b, pgex.registry);
 			switch(cmd0.getCmdCase()) {
 				case SETEYE: setEye(ctx, cmd0.getSetEye()); break;
 				case SETDATA: setData(ctx, cmd0.getSetData()); break;

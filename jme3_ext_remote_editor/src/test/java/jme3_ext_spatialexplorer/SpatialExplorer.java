@@ -6,6 +6,7 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -52,11 +53,14 @@ public class SpatialExplorer {
 		//		tree.setCellFactory((treeview) -> new MyTreeCell());
 		tree.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue)  -> {
 			try {
-				select(newValue.getValue());
-				Platform.runLater(()->{
-					update(newValue.getValue(), newValue);
-				});
-
+				if (newValue == null) {
+					select(null);
+				} else {
+					select(newValue.getValue());
+					Platform.runLater(()->{
+						update(newValue.getValue(), newValue);
+					});
+				}
 			} catch(Exception exc){
 				exc.printStackTrace();
 			}
@@ -89,7 +93,7 @@ public class SpatialExplorer {
 	public void select(Spatial value) {
 		System.out.println("selected : " + value);
 		for (String key : value.getUserDataKeys()) {
-			System.out.printf("\tusedata : %s -> %s \n", key, value.getUserData(key));
+			System.out.printf("\tuser data : %s -> %s \n", key, value.getUserData(key));
 		}
 		selectAction.bean = value;
 		selectAction.handle(null);
@@ -108,11 +112,11 @@ public class SpatialExplorer {
 				item.getChildren().add(childItem);
 			}
 		}
-//		item.expandedProperty().addListener((evt) -> {
-//			if (((BooleanProperty)evt).get()) {
-//				update(value, item);
-//			}
-//		});
+		item.expandedProperty().addListener((evt) -> {
+			if (((BooleanProperty)evt).get()) {
+				update(value, item);
+			}
+		});
 	}
 
 //	class MyTreeCell extends TextFieldTreeCell<Spatial> {

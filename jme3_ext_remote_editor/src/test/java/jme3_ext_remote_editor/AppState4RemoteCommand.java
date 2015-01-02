@@ -65,6 +65,7 @@ public class AppState4RemoteCommand extends AbstractAppState {
 			Material defaultMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
 			defaultMaterial.setColor("Color", ColorRGBA.Gray);
 			pgex = new Pgex(app.getAssetManager(), defaultMaterial);
+			pgex.setupExtensionRegistry();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

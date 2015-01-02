@@ -1,11 +1,17 @@
 package jme3_ext_remote_editor;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
+import pgex.Datas;
 import pgex.Datas.Data;
+import pgex_ext.Customparams;
+import pgex_ext.Customparams.CustomParam;
+import pgex_ext.Customparams.CustomParams;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.jme3.asset.AssetManager;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
@@ -39,6 +45,12 @@ import com.jme3.texture.Texture2D;
 public class Pgex {
 	final AssetManager assetManager;
 	final Material defaultMaterial;
+
+	final ExtensionRegistry registry = ExtensionRegistry.newInstance();
+
+	protected void setupExtensionRegistry() {
+		Customparams.registerAllExtensions(registry);
+	}
 
 	public Vector2f cnv(pgex.Datas.Vec2 src, Vector2f dst) {
 		dst.set(src.getX(), src.getY());
@@ -172,9 +184,17 @@ public class Pgex {
 		mergeGeometries(src, root, components);
 		mergeMaterials(src, components);
 		mergeLights(src, root, components);
-		//mergeCustomParams(src, components);
+		mergeCustomParams(src, components);
 		// relations should be the last because it reuse data provide by other (put in components)
 		mergeRelations(src, root, components);
+	}
+
+	private void mergeCustomParams(Data src, Map<String, Object> components) {
+		for(pgex_ext.Customparams.CustomParams srccp : src.getExtension(pgex_ext.Customparams.customParams)) {
+			//TODO merge with existing
+			System.out.println("add  : " + srccp.getId());
+			components.put(srccp.getId(), srccp);
+		}
 	}
 
 	public void mergeLights(Data src, Node root, Map<String, Object> components) {
@@ -219,6 +239,7 @@ public class Pgex {
 				dst.light.setColor(cnv(srcl.getColor(), new ColorRGBA()).mult(srcl.getIntensity()));
 			}
 			//TODO manage attenuation
+			//TODO manage conversion of type
 			switch(srcl.getKind()) {
 			case spot: {
 				SpotLight l = (SpotLight)dst.light;
@@ -330,13 +351,6 @@ public class Pgex {
 		}
 	}
 
-	//	public void mergeCustomParams(pgex.Datas.Data src, Map<String, Object> components) {
-	//		for(pgex.Datas.CustomParams g : src.getCustomParamsList()) {
-	//			//TODO merge (instead of replace)
-	//			components.put(g.getId(), g);
-	//		}
-	//	}
-
 	public void mergeRelations(pgex.Datas.Data src, Node root, Map<String, Object> components) {
 		for(pgex.Datas.Relation r : src.getRelationsList()) {
 			Object op1 = components.get(r.getRef1());
@@ -347,9 +361,17 @@ public class Pgex {
 			if (op2 == null) {
 				System.out.println("can't link op2 not found :" + r.getRef2());
 			}
-			if (op1 == null || op2 == null) return;
+			if (op1 == null || op2 == null) continue;
 			boolean done = false;
-			if (op1 instanceof Geometry) { // <--> pgex.Datas.Geometry
+			if (op1 instanceof CustomParams) { // <--> pgex_ext.Customparams.CustomParams
+				CustomParams cp1 = (CustomParams) op1;
+				if (op2 instanceof Spatial) { // Geometry, Node
+					for(CustomParam p : cp1.getParamsList()) {
+						mergeToUserData(p, (Spatial) op2);
+					}
+					done = true;
+				}
+			}else if (op1 instanceof Geometry) { // <--> pgex.Datas.Geometry
 				Geometry g1 = (Geometry) op1;
 				if (op2 instanceof PgexLightControl) {
 					PgexLightControl l2 = (PgexLightControl)op2;
@@ -363,10 +385,6 @@ public class Pgex {
 				} else if (op2 instanceof Node) {
 					((Node) op2).attachChild(g1);
 					done = true;
-					//				}else if (op2 instanceof pgex.Datas.CustomParams) {
-					//					for(pgex.Datas.CustomParam p : ((pgex.Datas.CustomParams)op2).getParamsList()) {
-					//						g1.setUserData(p.getName(), getValue(p));
-					//					}
 				}
 			} else if (op1 instanceof PgexLightControl) { // <--> pgex.Datas.Light
 				PgexLightControl l1 = (PgexLightControl)op1;
@@ -380,18 +398,8 @@ public class Pgex {
 				if (op2 instanceof Node) {
 					((Node) op2).setMaterial(m1);
 					done = true;
-					//				}else if (op2 instanceof pgex.Datas.CustomParams) {
-					//					for(pgex.Datas.CustomParam p : ((pgex.Datas.CustomParams)op2).getParamsList()) {
-					//						mergeToMaterial(p, m1);
-					//					}
 				}
-			} else if (op1 instanceof Node) { // <--> pgex.Datas.Material
-				// Node n1 = (Node) op1;
-				//				if (op2 instanceof pgex.Datas.CustomParams) {
-				//					for(pgex.Datas.CustomParam p : ((pgex.Datas.CustomParams)op2).getParamsList()) {
-				//						n1.setUserData(p.getName(), getValue(p));
-				//					}
-				//				}
+			} else if (op1 instanceof Node) { // <--> pgex.Datas.Node
 			}
 			if (!done) {
 				System.out.printf("doesn't know how to make relation %s(%s) -- %s(%s)\n", r.getRef1(), op1.getClass(), r.getRef2(), op2.getClass());
@@ -399,18 +407,51 @@ public class Pgex {
 		}
 	}
 
-	//	Object getValue(pgex.Datas.CustomParam p) {
-	//		if (p.hasColor()) return cnv(p.getColor(), new ColorRGBA());
-	//		if (p.hasFloat()) return p.getFloat();
-	//		if (p.hasInt()) return p.getInt();
-	//		if (p.hasMat4()) return cnv(p.getMat4(), new Matrix4f());
-	//		if (p.hasQuat()) return cnv(p.getQuat(), new Quaternion());
-	//		if (p.hasString()) return p.getString();
-	//		if (p.hasVec2()) return cnv(p.getVec2(), new Vector2f());
-	//		if (p.hasVec3()) return cnv(p.getVec3(), new Vector3f());
-	//		if (p.hasVec4()) return cnv(p.getVec4(), new Vector4f());
-	//		return null;
-	//	}
+	public Spatial mergeToUserData(CustomParam p, Spatial dst) {
+		String name = p.getName();
+		switch(p.getValueCase()) {
+		case VALUE_NOT_SET:
+			dst.setUserData(name, null);
+			break;
+		case VBOOL:
+			dst.setUserData(name, p.getVbool());
+			break;
+		case VCOLOR:
+			dst.setUserData(name, cnv(p.getVcolor(), new ColorRGBA()));
+			break;
+		case VFLOAT:
+			dst.setUserData(name, p.getVfloat());
+			break;
+		case VINT:
+			dst.setUserData(name, p.getVint());
+			break;
+		case VMAT4:
+			dst.setUserData(name, cnv(p.getVmat4(), new Matrix4f()));
+			break;
+		case VQUAT:
+			dst.setUserData(name, cnv(p.getVquat(), new Vector4f()));
+			break;
+		case VSTRING:
+			dst.setUserData(name, p.getVstring());
+			break;
+		case VTEXTURE:
+			dst.setUserData(name, getValue(p.getVtexture()));
+			break;
+		case VVEC2:
+			dst.setUserData(name, cnv(p.getVvec2(), new Vector2f()));
+			break;
+		case VVEC3:
+			dst.setUserData(name, cnv(p.getVvec3(), new Vector3f()));
+			break;
+		case VVEC4:
+			dst.setUserData(name, cnv(p.getVvec4(), new Vector4f()));
+			break;
+		default:
+			System.out.println("Material doesn't support parameter :" + name + " of type " + p.getValueCase().name());
+			break;
+		}
+		return dst;
+	}
 
 	public Image.Format getValue(pgex.Datas.Texture2DInline.Format f) {
 		switch(f){
@@ -448,35 +489,6 @@ public class Pgex {
 		}
 		return mat;
 	}
-
-	//	Material mergeToMaterial(pgex.Datas.CustomParam p, Material dst) {
-	//		String name = p.getName();
-	//		switch(p.) {
-	//		if (p.hasColor()){
-	//			dst.setColor(name, cnv(p.getColor(), new ColorRGBA()));
-	//		} else if (p.hasFloat()) {
-	//			dst.setFloat(name, p.getFloat());
-	//		} else if (p.hasInt()) {
-	//			dst.setInt(name, p.getInt());
-	//		} else if (p.hasMat4()) {
-	//			dst.setMatrix4(name, cnv(p.getMat4(), new Matrix4f()));
-	//		} else if (p.hasQuat()) {
-	//			dst.setVector4(name, cnv(p.getQuat(), new Vector4f()));
-	//		} else if (p.hasString()){
-	//			System.out.println("Material doesn't support string parameter :" + name + " --> " + p.getString());
-	//		} else if (p.hasVec2()) {
-	//			dst.setVector2(name, cnv(p.getVec2(), new Vector2f()));
-	//		} else if (p.hasVec3()) {
-	//			dst.setVector3(name, cnv(p.getVec3(), new Vector3f()));
-	//		} else if (p.hasVec4()) {
-	//			dst.setVector4(name, cnv(p.getVec4(), new Vector4f()));
-	//		} else if (p.hasTexture()) {
-	//			dst.setTexture(name, getValue(p.getTexture()));
-	//		} else {
-	//			dst.clearParam(name);
-	//		}
-	//		return dst;
-	//	}
 
 	public Material mergeToMaterial(pgex.Datas.MaterialParam p, Material dst) {
 		String name = findMaterialParamName(p.getAttrib().name(), toVarType(p.getValueCase()), dst);
