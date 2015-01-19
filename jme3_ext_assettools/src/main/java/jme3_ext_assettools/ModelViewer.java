@@ -241,6 +241,8 @@ public class ModelViewer {
 			Helper.registerAction_SaveAsJ3O(se.spatialExplorer, app);
 			Helper.registerAction_ShowSkeleton(se.spatialExplorer, app);
 			Helper.registerAction_ShowWireframe(se.spatialExplorer, app);
+			Helper.registerBarAction_ShowFps(se.spatialExplorer, app);
+			Helper.registerBarAction_ShowStats(se.spatialExplorer, app);
 			Helper.registerBarAction_SceneInWireframe(se.spatialExplorer, app);
 			Helper.registerBarAction_SceneInDebugPhysic(se.spatialExplorer, app);
 			app.getStateManager().attach(se);
