@@ -21,7 +21,7 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
-version = "0.3.0"
+version = "0.3.1"
 group = "net.alchim31.jme3"
 def description = "A basic viewer of JME and some other tools. Can be used for remote edition (eg via blender) or in asset pipeline to check visual. Available as application or library"
 

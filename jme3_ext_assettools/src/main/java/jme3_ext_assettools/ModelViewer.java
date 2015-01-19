@@ -4,7 +4,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -12,17 +11,16 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
-
-import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import jme3_ext_pgex.Pgex;
 import jme3_ext_pgex.PgexLoader;
 import jme3_ext_remote_editor.AppState4RemoteCommand;
 import jme3_ext_spatial_explorer.AppStateSpatialExplorer;
 import jme3_ext_spatial_explorer.Helper;
+
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -241,6 +239,10 @@ public class ModelViewer {
 			Helper.registerAction_Refresh(se.spatialExplorer);
 			Helper.registerAction_ShowLocalAxis(se.spatialExplorer, app);
 			Helper.registerAction_SaveAsJ3O(se.spatialExplorer, app);
+			Helper.registerAction_ShowSkeleton(se.spatialExplorer, app);
+			Helper.registerAction_ShowWireframe(se.spatialExplorer, app);
+			Helper.registerBarAction_SceneInWireframe(se.spatialExplorer, app);
+			Helper.registerBarAction_SceneInDebugPhysic(se.spatialExplorer, app);
 			app.getStateManager().attach(se);
 			return null;
 		});
