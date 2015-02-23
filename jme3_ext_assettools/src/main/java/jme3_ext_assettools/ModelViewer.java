@@ -14,10 +14,9 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
-import jme3_ext_pgex.Pgex;
-import jme3_ext_pgex.PgexLoader;
+import jme3_ext_xbuf.Xbuf;
+import jme3_ext_xbuf.XbufLoader;
 import jme3_ext_remote_editor.AppState4RemoteCommand;
-import jme3_ext_spatial_explorer.AppStateSpatialExplorer;
 import jme3_ext_spatial_explorer.Helper;
 
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -45,7 +44,7 @@ public class ModelViewer {
 
 	public static void main(String[] args) {
 		Logger.getLogger("").setLevel(Level.WARNING);
-		installSLF4JBridge();
+		//installSLF4JBridge();
 		Options options = new Options();
 		JCommander jc = new JCommander(options);
 		try {
@@ -206,7 +205,7 @@ public class ModelViewer {
 			assetManager.registerLoader(OBJLoader.class, "obj");
 			assetManager.registerLoader(MTLoaderExt.class, "mtl");
 			assetManager.registerLoader(BlenderLoader.class, "blend");
-			assetManager.registerLoader(PgexLoader.class, "pgex");
+			assetManager.registerLoader(XbufLoader.class, "xbuf");
 			return null;
 		});
 	}
@@ -234,26 +233,13 @@ public class ModelViewer {
 
 	//Setup SpatialExplorer
 	public void setupSpatialExplorer() {
-		app.enqueue(() -> {
-			AppStateSpatialExplorer se = new AppStateSpatialExplorer();
-			Helper.registerAction_Refresh(se.spatialExplorer);
-			Helper.registerAction_ShowLocalAxis(se.spatialExplorer, app);
-			Helper.registerAction_SaveAsJ3O(se.spatialExplorer, app);
-			Helper.registerAction_ShowSkeleton(se.spatialExplorer, app);
-			Helper.registerAction_ShowWireframe(se.spatialExplorer, app);
-			Helper.registerBarAction_ShowFps(se.spatialExplorer, app);
-			Helper.registerBarAction_ShowStats(se.spatialExplorer, app);
-			Helper.registerBarAction_SceneInWireframe(se.spatialExplorer, app);
-			Helper.registerBarAction_SceneInDebugPhysic(se.spatialExplorer, app);
-			app.getStateManager().attach(se);
-			return null;
-		});
+		Helper.setupSpatialExplorerWithAll(app);
 	}
 
 	public void setupRemoteCommand(int port) {
 		app.enqueue(() -> {
-			Pgex pgex = new Pgex(app.getAssetManager());
-			app.getStateManager().attach(new AppState4RemoteCommand(port, pgex));
+			Xbuf xbuf = new Xbuf(app.getAssetManager());
+			app.getStateManager().attach(new AppState4RemoteCommand(port, xbuf));
 			return null;
 		});
 	}

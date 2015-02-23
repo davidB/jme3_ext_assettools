@@ -21,7 +21,7 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
-version = "0.3.1"
+version = "0.3.2"
 group = "net.alchim31.jme3"
 def description = "A basic viewer of JME and some other tools. Can be used for remote edition (eg via blender) or in asset pipeline to check visual. Available as application or library"
 
@@ -41,12 +41,12 @@ def v_jme3 = '3.0.10'
 dependencies {
 	// logging
 	compile "org.slf4j:slf4j-api:${v_slf4j}"
-	compile "org.slf4j:jul-to-slf4j:${v_slf4j}"
+	runtime "org.slf4j:jul-to-slf4j:${v_slf4j}"
 	runtime 'ch.qos.logback:logback-classic:1.1.2'
 
 	// jme
-	compile 'net.alchim31.jme3:jme3_ext_spatial_explorer:0+'
-	compile 'net.alchim31.jme3:jme3_ext_remote_editor:0+'
+	compile 'net.alchim31.jme3:jme3_ext_spatial_explorer:0.7+'
+	compile 'net.alchim31.jme3:jme3_ext_remote_editor:0.2+'
 	compile "com.jme3:jme3-core:${v_jme3}"
 	compile "com.jme3:jme3-blender:${v_jme3}"
 	runtime "com.jme3:jme3-desktop:${v_jme3}"
